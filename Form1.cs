@@ -7,17 +7,24 @@ namespace ZXTL
     {
         private readonly LogPaneState _primaryPane = new();
         private readonly LogPaneState _secondaryPane = new();
+        private readonly Color _registerDefaultBackColor;
+        private readonly Color _registerDefaultForeColor;
+        private readonly Color _registerChangedBackColor = SystemColors.Info;
+        private readonly Color _registerDiffForeColor = Color.Red;
         private TraceLogData PrimaryLog => _primaryPane.LogData;
         private TraceLogData SecondaryLog => _secondaryPane.LogData;
 
         public Form1()
         {
             InitializeComponent();
+            _registerDefaultBackColor = txtPC1.BackColor;
+            _registerDefaultForeColor = txtPC1.ForeColor;
 
             _primaryPane.Initialize(groupBoxPrimary, listBox1, "Primary Log");
             _secondaryPane.Initialize(groupBoxSecondary, listBox2, "Secondary Log");
             WireOptionalHeaderVisibilityCheckboxes();
             WirePaneSelectionHandlers();
+            WireNavigationButtons();
         }
 
         protected override void OnFormClosed(FormClosedEventArgs e)
@@ -101,7 +108,7 @@ namespace ZXTL
                 }
 
                 ReportLogDetails(pane.LogData);
-                RefreshPanePreviewDisplay(pane);
+                await RefreshPaneViewportAsync(pane);
                 document.StartBackgroundIndexing();
             }
             catch (OperationCanceledException)
@@ -202,42 +209,149 @@ namespace ZXTL
             }
 
             pane.HeaderVisibilityCheckBox = checkBox;
-            checkBox.CheckedChanged += (_, _) => RefreshPanePreviewDisplay(pane);
+            checkBox.CheckedChanged += async (_, _) => await RefreshPaneViewportAsync(pane);
         }
 
-        private void RefreshPanePreviewDisplay(LogPaneState pane)
+        private void WireNavigationButtons()
         {
-            SetListBoxItems(pane.ListBox, BuildPreviewDisplayLines(pane));
+            btnNextLine.Click += async (_, _) => await ScrollPaneAsync(_primaryPane, +1);
+            btnPrevLine.Click += async (_, _) => await ScrollPaneAsync(_primaryPane, -1);
+            btnNextLine2.Click += async (_, _) => await ScrollPaneAsync(_secondaryPane, +1);
+            btnPrevline2.Click += async (_, _) => await ScrollPaneAsync(_secondaryPane, -1);
+
+            btnNextBoth.Click += async (_, _) => await ScrollBothPanesAsync(+1);
+            btnPrevBoth.Click += async (_, _) => await ScrollBothPanesAsync(-1);
         }
 
-        private static IReadOnlyList<string> BuildPreviewDisplayLines(LogPaneState pane)
+        private async Task ScrollBothPanesAsync(int delta)
         {
-            if (pane.PreviewLines.Count == 0)
+            await Task.WhenAll(
+                ScrollPaneAsync(_primaryPane, delta),
+                ScrollPaneAsync(_secondaryPane, delta));
+        }
+
+        private async Task ScrollPaneAsync(LogPaneState pane, int delta)
+        {
+            if (pane.Document is null)
+            {
+                return;
+            }
+
+            pane.VisibleStartLine += delta;
+            await RefreshPaneViewportAsync(pane);
+        }
+
+        private async Task RefreshPaneViewportAsync(LogPaneState pane)
+        {
+            TraceLogDocument? document = pane.Document;
+
+            if (document is null)
+            {
+                return;
+            }
+
+            int loadVersion = pane.LoadVersion;
+            int totalDisplayCapacity = CalculatePreviewLineCount(pane.ListBox);
+
+            bool isZxtl = pane.LogData.HasTemplateHeader;
+            bool showHeader = isZxtl &&
+                !string.IsNullOrEmpty(pane.LogData.HeaderLine) &&
+                pane.HeaderVisibilityCheckBox?.Checked != true;
+
+            int fixedHeaderCount = showHeader ? 1 : 0;
+            int traceCapacity = Math.Max(1, totalDisplayCapacity - fixedHeaderCount);
+            int dataStartAbsoluteLine = isZxtl ? 2 : 0;
+
+            IReadOnlyList<string> traceLines;
+            int totalTraceLinesKnown;
+
+            if (document.IsLineIndexComplete)
+            {
+                int totalLines = document.IndexedLineCount;
+                totalTraceLinesKnown = Math.Max(0, totalLines - dataStartAbsoluteLine);
+                pane.VisibleStartLine = ClampVisibleStart(pane.VisibleStartLine, totalTraceLinesKnown, traceCapacity);
+
+                traceLines = await document.ReadLinesAsync(
+                    dataStartAbsoluteLine + pane.VisibleStartLine,
+                    traceCapacity,
+                    document.Token);
+            }
+            else
+            {
+                totalTraceLinesKnown = Math.Max(0, pane.PreviewLines.Count - dataStartAbsoluteLine);
+                pane.VisibleStartLine = ClampVisibleStart(pane.VisibleStartLine, totalTraceLinesKnown, traceCapacity);
+
+                traceLines = SlicePreviewTraceLines(pane.PreviewLines, dataStartAbsoluteLine + pane.VisibleStartLine, traceCapacity);
+            }
+
+            if (pane.LoadVersion != loadVersion || !ReferenceEquals(pane.Document, document))
+            {
+                return;
+            }
+
+            List<string> displayLines = new(fixedHeaderCount + traceLines.Count);
+            if (showHeader && pane.LogData.HeaderLine is not null)
+            {
+                displayLines.Add(pane.LogData.HeaderLine);
+            }
+            displayLines.AddRange(traceLines);
+
+            SetListBoxItems(pane.ListBox, displayLines);
+
+            if (traceLines.Count > 0)
+            {
+                int centeredTraceOffset = traceLines.Count / 2;
+                int selectedIndex = fixedHeaderCount + centeredTraceOffset;
+                if (selectedIndex >= 0 && selectedIndex < pane.ListBox.Items.Count)
+                {
+                    pane.ListBox.SelectedIndex = selectedIndex;
+                    SetCurrentLineText(pane, dataStartAbsoluteLine + pane.VisibleStartLine + centeredTraceOffset);
+                }
+            }
+            else
+            {
+                pane.ListBox.ClearSelected();
+                SetCurrentLineText(pane, null);
+            }
+        }
+
+        private static int ClampVisibleStart(int requestedStart, int totalTraceLines, int traceCapacity)
+        {
+            if (totalTraceLines <= 0)
+            {
+                return 0;
+            }
+
+            int maxStart = Math.Max(0, totalTraceLines - traceCapacity);
+            return Math.Clamp(requestedStart, 0, maxStart);
+        }
+
+        private static IReadOnlyList<string> SlicePreviewTraceLines(
+            IReadOnlyList<string> rawPreviewLines,
+            int absoluteStartLine,
+            int lineCount)
+        {
+            if (lineCount <= 0 || absoluteStartLine >= rawPreviewLines.Count)
             {
                 return Array.Empty<string>();
             }
 
-            if (!pane.LogData.HasTemplateHeader)
+            int count = Math.Min(lineCount, rawPreviewLines.Count - absoluteStartLine);
+            List<string> result = new(count);
+            for (int i = 0; i < count; i++)
             {
-                return pane.PreviewLines;
+                result.Add(rawPreviewLines[absoluteStartLine + i]);
             }
 
-            List<string> displayLines = new(pane.PreviewLines.Count);
-            bool hideHeaderLine = pane.HeaderVisibilityCheckBox?.Checked == true;
+            return result;
+        }
 
-            // ZXTL first line is template and is never shown in the list.
-            if (!hideHeaderLine && !string.IsNullOrEmpty(pane.LogData.HeaderLine))
-            {
-                displayLines.Add(pane.LogData.HeaderLine);
-            }
-
-            // Remaining trace preview starts after template (line 1) and header (line 2).
-            for (int i = 2; i < pane.PreviewLines.Count; i++)
-            {
-                displayLines.Add(pane.PreviewLines[i]);
-            }
-
-            return displayLines;
+        private void SetCurrentLineText(LogPaneState pane, int? absoluteLineIndex)
+        {
+            TextBox target = ReferenceEquals(pane, _primaryPane) ? txtCurrentLine : txtCurrentLine2;
+            target.Text = absoluteLineIndex is int line
+                ? (line + 1).ToString(CultureInfo.InvariantCulture)
+                : string.Empty;
         }
 
         private void OnPreviewSelectionChanged(LogPaneState pane)
@@ -548,6 +662,7 @@ namespace ZXTL
             ushort? bc = r.BC ?? ComposePair(r.B, r.C);
             ushort? de = r.DE ?? ComposePair(r.D, r.E);
             ushort? hl = r.HL ?? ComposePair(r.H, r.L);
+            byte? fValue = r.F ?? ExtractLowByte(r.AF);
 
             if (isPrimary)
             {
@@ -567,6 +682,7 @@ namespace ZXTL
                 SetRegisterTextBox(txtHLPrime1, FormatUInt16(r.HLx, logData));
                 SetRegisterTextBox(txtWZ1, FormatUInt16(r.WZ, logData));
                 SetRegisterTextBox(txtPG1, FormatByte(logData.SelectedLine.Port7FFD, logData));
+                SetFlagCheckboxesPrimary(fValue);
             }
             else
             {
@@ -586,7 +702,10 @@ namespace ZXTL
                 SetRegisterTextBox(txtHLPrime2, FormatUInt16(r.HLx, logData));
                 SetRegisterTextBox(txtWZ2, FormatUInt16(r.WZ, logData));
                 SetRegisterTextBox(txtPG2, FormatByte(logData.SelectedLine.Port7FFD, logData));
+                SetFlagCheckboxesSecondary(fValue);
             }
+
+            UpdateCrossPaneRegisterDifferenceColors();
         }
 
         private static ushort? ComposePair(byte? high, byte? low)
@@ -599,9 +718,85 @@ namespace ZXTL
             return (ushort)((high.Value << 8) | low.Value);
         }
 
-        private static void SetRegisterTextBox(TextBox textBox, string text)
+        private static byte? ExtractLowByte(ushort? value)
         {
+            return value is null ? null : (byte)(value.Value & 0xFF);
+        }
+
+        private void SetRegisterTextBox(TextBox textBox, string text)
+        {
+            bool changed = !string.Equals(textBox.Text, text, StringComparison.Ordinal);
             textBox.Text = text;
+            textBox.BackColor = changed ? _registerChangedBackColor : _registerDefaultBackColor;
+        }
+
+        private void UpdateCrossPaneRegisterDifferenceColors()
+        {
+            bool canCompare = _primaryPane.Document is not null &&
+                _secondaryPane.Document is not null &&
+                _primaryPane.ListBox.SelectedIndex >= 0 &&
+                _secondaryPane.ListBox.SelectedIndex >= 0;
+
+            ApplyCrossPaneDiffColor(txtPC1, txtPC2, canCompare);
+            ApplyCrossPaneDiffColor(txtSP1, txtSP2, canCompare);
+            ApplyCrossPaneDiffColor(txtAF1, txtAF2, canCompare);
+            ApplyCrossPaneDiffColor(txtBC1, txtBC2, canCompare);
+            ApplyCrossPaneDiffColor(txtDE1, txtDE2, canCompare);
+            ApplyCrossPaneDiffColor(txtHL1, txtHL2, canCompare);
+            ApplyCrossPaneDiffColor(txtIX1, txtIX2, canCompare);
+            ApplyCrossPaneDiffColor(txtIY1, txtIY2, canCompare);
+            ApplyCrossPaneDiffColor(txtIR1, txtIR2, canCompare);
+            ApplyCrossPaneDiffColor(txtIM1, txtIM2, canCompare);
+            ApplyCrossPaneDiffColor(txtAFPrime1, txtAFPrime2, canCompare);
+            ApplyCrossPaneDiffColor(txtBCPrime1, txtBCPrime2, canCompare);
+            ApplyCrossPaneDiffColor(txtDEPrime1, txtDEPrime2, canCompare);
+            ApplyCrossPaneDiffColor(txtHLPrime1, txtHLPrime2, canCompare);
+            ApplyCrossPaneDiffColor(txtWZ1, txtWZ2, canCompare);
+            ApplyCrossPaneDiffColor(txtPG1, txtPG2, canCompare);
+        }
+
+        private void ApplyCrossPaneDiffColor(TextBox primary, TextBox secondary, bool canCompare)
+        {
+            bool different = canCompare &&
+                !string.Equals(primary.Text, secondary.Text, StringComparison.Ordinal);
+
+            Color color = different ? _registerDiffForeColor : _registerDefaultForeColor;
+            primary.ForeColor = color;
+            secondary.ForeColor = color;
+        }
+
+        private void SetFlagCheckboxesPrimary(byte? fValue)
+        {
+            SetFlagCheckboxes(fValue, chkS1, chkZ1, chk51, chkH1, chk31, chkV1, chkN1, chkC1);
+        }
+
+        private void SetFlagCheckboxesSecondary(byte? fValue)
+        {
+            SetFlagCheckboxes(fValue, chkS2, chkZ2, chk52, chkH2, chk32, chkV2, chkN2, chkC2);
+        }
+
+        private static void SetFlagCheckboxes(
+            byte? fValue,
+            CheckBox chkS,
+            CheckBox chkZ,
+            CheckBox chk5,
+            CheckBox chkH,
+            CheckBox chk3,
+            CheckBox chkV,
+            CheckBox chkN,
+            CheckBox chkC)
+        {
+            byte flags = fValue ?? 0;
+            bool hasValue = fValue is not null;
+
+            chkS.Checked = hasValue && (flags & 0x80) != 0;
+            chkZ.Checked = hasValue && (flags & 0x40) != 0;
+            chk5.Checked = hasValue && (flags & 0x20) != 0;
+            chkH.Checked = hasValue && (flags & 0x10) != 0;
+            chk3.Checked = hasValue && (flags & 0x08) != 0;
+            chkV.Checked = hasValue && (flags & 0x04) != 0;
+            chkN.Checked = hasValue && (flags & 0x02) != 0;
+            chkC.Checked = hasValue && (flags & 0x01) != 0;
         }
 
         private static string FormatUInt16(ushort? value, TraceLogData logData)
@@ -642,7 +837,7 @@ namespace ZXTL
             IReadOnlyList<string> values,
             StringBuilder debugLog)
         {
-            RegisterValueParseMode registerParseMode = pane.LogData.Opts.Hex
+            RegisterValueParseMode defaultRegisterParseMode = pane.LogData.Opts.Hex
                 ? RegisterValueParseMode.Hex
                 : RegisterValueParseMode.Decimal;
 
@@ -656,18 +851,51 @@ namespace ZXTL
                 if (item.Kind == TraceLogOrderItemKind.FormatDirective &&
                     item.FormatTarget == TraceLogOrderFormatTarget.Registers)
                 {
-                    registerParseMode = item.ValueFormat switch
+                    RegisterValueParseMode directiveParseMode = item.ValueFormat switch
                     {
                         TraceLogOrderValueFormat.Hex => RegisterValueParseMode.Hex,
                         TraceLogOrderValueFormat.Decimal => RegisterValueParseMode.Decimal,
-                        _ => registerParseMode
+                        _ => defaultRegisterParseMode
                     };
+
+                    if (TryAssignDynamicRegisterDirectiveValue(
+                        pane.LogData.SelectedLine.Registers,
+                        rawValue,
+                        directiveParseMode,
+                        pane.LogData.Opts.HexPrefix,
+                        out string? dynamicError))
+                    {
+                        wroteAnyRegister = true;
+                    }
+                    else
+                    {
+                        debugLog.AppendLine($"  ERR [{i:00}] {TraceLogOrderParser.Describe(item)} <= \"{rawValue}\" :: {dynamicError}");
+                    }
 
                     continue;
                 }
 
                 if (item.Kind != TraceLogOrderItemKind.Register)
                 {
+                    if (item.Kind == TraceLogOrderItemKind.Field &&
+                        item.Field == TraceLogOrderField.Address)
+                    {
+                        if (TryAssignRegisterFromString(
+                            pane.LogData.SelectedLine.Registers,
+                            TraceLogOrderField.PC,
+                            rawValue,
+                            defaultRegisterParseMode,
+                            pane.LogData.Opts.HexPrefix,
+                            out string? addressError))
+                        {
+                            wroteAnyRegister = true;
+                        }
+                        else
+                        {
+                            debugLog.AppendLine($"  ERR [{i:00}] {TraceLogOrderParser.Describe(item)} <= \"{rawValue}\" :: {addressError}");
+                        }
+                    }
+
                     continue;
                 }
 
@@ -675,7 +903,7 @@ namespace ZXTL
                     pane.LogData.SelectedLine.Registers,
                     item.Field,
                     rawValue,
-                    registerParseMode,
+                    defaultRegisterParseMode,
                     pane.LogData.Opts.HexPrefix,
                     out string? error))
                 {
@@ -690,6 +918,58 @@ namespace ZXTL
             {
                 debugLog.AppendLine("Registers: parsed values applied to SelectedLine.Registers");
             }
+        }
+
+        private static bool TryAssignDynamicRegisterDirectiveValue(
+            TraceLogRegisters registers,
+            string rawValue,
+            RegisterValueParseMode parseMode,
+            string? hexPrefix,
+            out string? error)
+        {
+            error = null;
+
+            int equalsIndex = rawValue.IndexOf('=');
+            if (equalsIndex <= 0 || equalsIndex == rawValue.Length - 1)
+            {
+                error = "Expected 'Register=Value' format.";
+                return false;
+            }
+
+            string rawRegisterName = rawValue[..equalsIndex].Trim();
+            string rawRegisterValue = rawValue[(equalsIndex + 1)..].Trim();
+
+            if (rawRegisterName.Length == 0)
+            {
+                error = "Register name is empty.";
+                return false;
+            }
+
+            if (rawRegisterValue.Length == 0)
+            {
+                error = "Register value is empty.";
+                return false;
+            }
+
+            if (!TryResolveDynamicRegisterTarget(rawRegisterName, out DynamicRegisterTarget target, out string? resolveError))
+            {
+                error = resolveError;
+                return false;
+            }
+
+            if (!TryParseIntegerText(rawRegisterValue, parseMode, hexPrefix, out ulong numericValue, out error))
+            {
+                ClearDynamicRegisterTarget(registers, target);
+                return false;
+            }
+
+            if (!TryAssignDynamicRegisterTarget(registers, target, numericValue, out error))
+            {
+                ClearDynamicRegisterTarget(registers, target);
+                return false;
+            }
+
+            return true;
         }
 
         private static bool TryAssignRegisterFromString(
@@ -712,21 +992,53 @@ namespace ZXTL
             {
                 // 8-bit
                 case TraceLogOrderField.A:
-                    return TryAssignByte(v => registers.A = v, () => registers.A = null, numericValue, out error);
+                    return TryAssignPairByte(
+                        registers,
+                        PairByteTarget.AF_High_A,
+                        numericValue,
+                        out error);
                 case TraceLogOrderField.F:
-                    return TryAssignByte(v => registers.F = v, () => registers.F = null, numericValue, out error);
+                    return TryAssignPairByte(
+                        registers,
+                        PairByteTarget.AF_Low_F,
+                        numericValue,
+                        out error);
                 case TraceLogOrderField.B:
-                    return TryAssignByte(v => registers.B = v, () => registers.B = null, numericValue, out error);
+                    return TryAssignPairByte(
+                        registers,
+                        PairByteTarget.BC_High_B,
+                        numericValue,
+                        out error);
                 case TraceLogOrderField.C:
-                    return TryAssignByte(v => registers.C = v, () => registers.C = null, numericValue, out error);
+                    return TryAssignPairByte(
+                        registers,
+                        PairByteTarget.BC_Low_C,
+                        numericValue,
+                        out error);
                 case TraceLogOrderField.D:
-                    return TryAssignByte(v => registers.D = v, () => registers.D = null, numericValue, out error);
+                    return TryAssignPairByte(
+                        registers,
+                        PairByteTarget.DE_High_D,
+                        numericValue,
+                        out error);
                 case TraceLogOrderField.E:
-                    return TryAssignByte(v => registers.E = v, () => registers.E = null, numericValue, out error);
+                    return TryAssignPairByte(
+                        registers,
+                        PairByteTarget.DE_Low_E,
+                        numericValue,
+                        out error);
                 case TraceLogOrderField.H:
-                    return TryAssignByte(v => registers.H = v, () => registers.H = null, numericValue, out error);
+                    return TryAssignPairByte(
+                        registers,
+                        PairByteTarget.HL_High_H,
+                        numericValue,
+                        out error);
                 case TraceLogOrderField.L:
-                    return TryAssignByte(v => registers.L = v, () => registers.L = null, numericValue, out error);
+                    return TryAssignPairByte(
+                        registers,
+                        PairByteTarget.HL_Low_L,
+                        numericValue,
+                        out error);
                 case TraceLogOrderField.IM:
                     return TryAssignByte(v => registers.IM = v, () => registers.IM = null, numericValue, out error);
 
@@ -865,18 +1177,167 @@ namespace ZXTL
             return true;
         }
 
+        private static bool TryAssignPairByte(
+            TraceLogRegisters registers,
+            PairByteTarget target,
+            ulong value,
+            out string? error)
+        {
+            error = null;
+
+            if (value > byte.MaxValue)
+            {
+                ClearPairByteTarget(registers, target);
+                error = $"Value out of range for byte: {value}.";
+                return false;
+            }
+
+            byte byteValue = (byte)value;
+            switch (target)
+            {
+                case PairByteTarget.AF_High_A:
+                    registers.A = byteValue;
+                    registers.AF = ComposeUpdatedPair(registers.AF, registers.F, byteValue, isHighByte: true);
+                    return true;
+                case PairByteTarget.AF_Low_F:
+                    registers.F = byteValue;
+                    registers.AF = ComposeUpdatedPair(registers.AF, registers.A, byteValue, isHighByte: false);
+                    return true;
+                case PairByteTarget.BC_High_B:
+                    registers.B = byteValue;
+                    registers.BC = ComposeUpdatedPair(registers.BC, registers.C, byteValue, isHighByte: true);
+                    return true;
+                case PairByteTarget.BC_Low_C:
+                    registers.C = byteValue;
+                    registers.BC = ComposeUpdatedPair(registers.BC, registers.B, byteValue, isHighByte: false);
+                    return true;
+                case PairByteTarget.DE_High_D:
+                    registers.D = byteValue;
+                    registers.DE = ComposeUpdatedPair(registers.DE, registers.E, byteValue, isHighByte: true);
+                    return true;
+                case PairByteTarget.DE_Low_E:
+                    registers.E = byteValue;
+                    registers.DE = ComposeUpdatedPair(registers.DE, registers.D, byteValue, isHighByte: false);
+                    return true;
+                case PairByteTarget.HL_High_H:
+                    registers.H = byteValue;
+                    registers.HL = ComposeUpdatedPair(registers.HL, registers.L, byteValue, isHighByte: true);
+                    return true;
+                case PairByteTarget.HL_Low_L:
+                    registers.L = byteValue;
+                    registers.HL = ComposeUpdatedPair(registers.HL, registers.H, byteValue, isHighByte: false);
+                    return true;
+                case PairByteTarget.IR_High_I:
+                    registers.IR = ComposeUpdatedPair(registers.IR, fallbackOtherByte: null, byteValue, isHighByte: true);
+                    return true;
+                case PairByteTarget.IR_Low_R:
+                    registers.IR = ComposeUpdatedPair(registers.IR, fallbackOtherByte: null, byteValue, isHighByte: false);
+                    return true;
+                case PairByteTarget.IX_High_XH:
+                    registers.IX = ComposeUpdatedPair(registers.IX, fallbackOtherByte: null, byteValue, isHighByte: true);
+                    return true;
+                case PairByteTarget.IX_Low_XL:
+                    registers.IX = ComposeUpdatedPair(registers.IX, fallbackOtherByte: null, byteValue, isHighByte: false);
+                    return true;
+                case PairByteTarget.IY_High_YH:
+                    registers.IY = ComposeUpdatedPair(registers.IY, fallbackOtherByte: null, byteValue, isHighByte: true);
+                    return true;
+                case PairByteTarget.IY_Low_YL:
+                    registers.IY = ComposeUpdatedPair(registers.IY, fallbackOtherByte: null, byteValue, isHighByte: false);
+                    return true;
+                default:
+                    error = $"Unsupported pair-byte target '{target}'.";
+                    return false;
+            }
+        }
+
+        private static ushort ComposeUpdatedPair(ushort? currentPair, byte? fallbackOtherByte, byte newByte, bool isHighByte)
+        {
+            byte otherByte;
+
+            if (fallbackOtherByte is not null)
+            {
+                otherByte = fallbackOtherByte.Value;
+            }
+            else if (currentPair is not null)
+            {
+                otherByte = isHighByte
+                    ? (byte)(currentPair.Value & 0xFF)
+                    : (byte)((currentPair.Value >> 8) & 0xFF);
+            }
+            else
+            {
+                otherByte = 0;
+            }
+
+            return isHighByte
+                ? (ushort)((newByte << 8) | otherByte)
+                : (ushort)((otherByte << 8) | newByte);
+        }
+
+        private static void ClearPairByteTarget(TraceLogRegisters registers, PairByteTarget target)
+        {
+            switch (target)
+            {
+                case PairByteTarget.AF_High_A:
+                    registers.A = null;
+                    registers.AF = null;
+                    break;
+                case PairByteTarget.AF_Low_F:
+                    registers.F = null;
+                    registers.AF = null;
+                    break;
+                case PairByteTarget.BC_High_B:
+                    registers.B = null;
+                    registers.BC = null;
+                    break;
+                case PairByteTarget.BC_Low_C:
+                    registers.C = null;
+                    registers.BC = null;
+                    break;
+                case PairByteTarget.DE_High_D:
+                    registers.D = null;
+                    registers.DE = null;
+                    break;
+                case PairByteTarget.DE_Low_E:
+                    registers.E = null;
+                    registers.DE = null;
+                    break;
+                case PairByteTarget.HL_High_H:
+                    registers.H = null;
+                    registers.HL = null;
+                    break;
+                case PairByteTarget.HL_Low_L:
+                    registers.L = null;
+                    registers.HL = null;
+                    break;
+                case PairByteTarget.IR_High_I:
+                case PairByteTarget.IR_Low_R:
+                    registers.IR = null;
+                    break;
+                case PairByteTarget.IX_High_XH:
+                case PairByteTarget.IX_Low_XL:
+                    registers.IX = null;
+                    break;
+                case PairByteTarget.IY_High_YH:
+                case PairByteTarget.IY_Low_YL:
+                    registers.IY = null;
+                    break;
+            }
+        }
+
         private static void SetRegisterFieldNull(TraceLogRegisters registers, TraceLogOrderField field)
         {
             switch (field)
             {
-                case TraceLogOrderField.A: registers.A = null; break;
-                case TraceLogOrderField.F: registers.F = null; break;
-                case TraceLogOrderField.B: registers.B = null; break;
-                case TraceLogOrderField.C: registers.C = null; break;
-                case TraceLogOrderField.D: registers.D = null; break;
-                case TraceLogOrderField.E: registers.E = null; break;
-                case TraceLogOrderField.H: registers.H = null; break;
-                case TraceLogOrderField.L: registers.L = null; break;
+                case TraceLogOrderField.A: registers.A = null; registers.AF = null; break;
+                case TraceLogOrderField.F: registers.F = null; registers.AF = null; break;
+                case TraceLogOrderField.B: registers.B = null; registers.BC = null; break;
+                case TraceLogOrderField.C: registers.C = null; registers.BC = null; break;
+                case TraceLogOrderField.D: registers.D = null; registers.DE = null; break;
+                case TraceLogOrderField.E: registers.E = null; registers.DE = null; break;
+                case TraceLogOrderField.H: registers.H = null; registers.HL = null; break;
+                case TraceLogOrderField.L: registers.L = null; registers.HL = null; break;
                 case TraceLogOrderField.IM: registers.IM = null; break;
 
                 case TraceLogOrderField.PC: registers.PC = null; break;
@@ -897,6 +1358,289 @@ namespace ZXTL
                 case TraceLogOrderField.IFF1: registers.IFF1 = null; break;
                 case TraceLogOrderField.IFF2: registers.IFF2 = null; break;
             }
+        }
+
+        private static bool TryResolveDynamicRegisterTarget(
+            string rawRegisterName,
+            out DynamicRegisterTarget target,
+            out string? error)
+        {
+            target = default;
+            error = null;
+
+            string name = rawRegisterName.Trim();
+            if (name.Length == 0)
+            {
+                error = "Empty register name.";
+                return false;
+            }
+
+            string upper = name.ToUpperInvariant();
+
+            // Alternate set shorthand like AF', BC*, DE?, HLx -> normalize to AFx/BCx/DEx/HLx.
+            if (upper.Length == 3)
+            {
+                string firstTwo = upper[..2];
+                if (firstTwo is "AF" or "BC" or "DE" or "HL")
+                {
+                    target = firstTwo switch
+                    {
+                        "AF" => DynamicRegisterTarget.FieldAFx,
+                        "BC" => DynamicRegisterTarget.FieldBCx,
+                        "DE" => DynamicRegisterTarget.FieldDEx,
+                        "HL" => DynamicRegisterTarget.FieldHLx,
+                        _ => default
+                    };
+                    return true;
+                }
+            }
+
+            if (upper.Length > 3 && upper is not "IFF1" and not "IFF2")
+            {
+                error = $"Dynamic register name '{rawRegisterName}' is too long.";
+                return false;
+            }
+
+            switch (upper)
+            {
+                case "PC": target = DynamicRegisterTarget.FieldPC; return true;
+                case "SP": target = DynamicRegisterTarget.FieldSP; return true;
+                case "A": target = DynamicRegisterTarget.PairByteAF_High_A; return true;
+                case "F": target = DynamicRegisterTarget.PairByteAF_Low_F; return true;
+                case "B": target = DynamicRegisterTarget.PairByteBC_High_B; return true;
+                case "C": target = DynamicRegisterTarget.PairByteBC_Low_C; return true;
+                case "D": target = DynamicRegisterTarget.PairByteDE_High_D; return true;
+                case "E": target = DynamicRegisterTarget.PairByteDE_Low_E; return true;
+                case "H": target = DynamicRegisterTarget.PairByteHL_High_H; return true;
+                case "L": target = DynamicRegisterTarget.PairByteHL_Low_L; return true;
+                case "BC": target = DynamicRegisterTarget.FieldBC; return true;
+                case "DE": target = DynamicRegisterTarget.FieldDE; return true;
+                case "HL": target = DynamicRegisterTarget.FieldHL; return true;
+                case "AF": target = DynamicRegisterTarget.FieldAF; return true;
+                case "IX":
+                case "X":
+                    target = DynamicRegisterTarget.FieldIX; return true;
+                case "XH":
+                    target = DynamicRegisterTarget.PairByteIX_High_XH; return true;
+                case "XL":
+                    target = DynamicRegisterTarget.PairByteIX_Low_XL; return true;
+                case "IY":
+                case "Y":
+                    target = DynamicRegisterTarget.FieldIY; return true;
+                case "YH":
+                    target = DynamicRegisterTarget.PairByteIY_High_YH; return true;
+                case "YL":
+                    target = DynamicRegisterTarget.PairByteIY_Low_YL; return true;
+                case "IR":
+                    target = DynamicRegisterTarget.FieldIR; return true;
+                case "I":
+                    target = DynamicRegisterTarget.PairByteIR_High_I; return true;
+                case "R":
+                    target = DynamicRegisterTarget.PairByteIR_Low_R; return true;
+                case "WZ":
+                    target = DynamicRegisterTarget.FieldWZ; return true;
+                case "IM":
+                    target = DynamicRegisterTarget.FieldIM; return true;
+                case "IFF1":
+                    target = DynamicRegisterTarget.FieldIFF1; return true;
+                case "IFF2":
+                    target = DynamicRegisterTarget.FieldIFF2; return true;
+                case "AFX":
+                    target = DynamicRegisterTarget.FieldAFx; return true;
+                case "BCX":
+                    target = DynamicRegisterTarget.FieldBCx; return true;
+                case "DEX":
+                    target = DynamicRegisterTarget.FieldDEx; return true;
+                case "HLX":
+                    target = DynamicRegisterTarget.FieldHLx; return true;
+                default:
+                    error = $"Unknown dynamic register name '{rawRegisterName}'.";
+                    return false;
+            }
+        }
+
+        private static bool TryAssignDynamicRegisterTarget(
+            TraceLogRegisters registers,
+            DynamicRegisterTarget target,
+            ulong numericValue,
+            out string? error)
+        {
+            switch (target)
+            {
+                case DynamicRegisterTarget.FieldPC:
+                    return TryAssignUShort(v => registers.PC = v, () => registers.PC = null, numericValue, out error);
+                case DynamicRegisterTarget.FieldSP:
+                    return TryAssignUShort(v => registers.SP = v, () => registers.SP = null, numericValue, out error);
+                case DynamicRegisterTarget.FieldAF:
+                    return TryAssignUShort(v => registers.AF = v, () => registers.AF = null, numericValue, out error);
+                case DynamicRegisterTarget.FieldBC:
+                    return TryAssignUShort(v => registers.BC = v, () => registers.BC = null, numericValue, out error);
+                case DynamicRegisterTarget.FieldDE:
+                    return TryAssignUShort(v => registers.DE = v, () => registers.DE = null, numericValue, out error);
+                case DynamicRegisterTarget.FieldHL:
+                    return TryAssignUShort(v => registers.HL = v, () => registers.HL = null, numericValue, out error);
+                case DynamicRegisterTarget.FieldIX:
+                    return TryAssignUShort(v => registers.IX = v, () => registers.IX = null, numericValue, out error);
+                case DynamicRegisterTarget.FieldIY:
+                    return TryAssignUShort(v => registers.IY = v, () => registers.IY = null, numericValue, out error);
+                case DynamicRegisterTarget.FieldIR:
+                    return TryAssignUShort(v => registers.IR = v, () => registers.IR = null, numericValue, out error);
+                case DynamicRegisterTarget.FieldAFx:
+                    return TryAssignUShort(v => registers.AFx = v, () => registers.AFx = null, numericValue, out error);
+                case DynamicRegisterTarget.FieldBCx:
+                    return TryAssignUShort(v => registers.BCx = v, () => registers.BCx = null, numericValue, out error);
+                case DynamicRegisterTarget.FieldDEx:
+                    return TryAssignUShort(v => registers.DEx = v, () => registers.DEx = null, numericValue, out error);
+                case DynamicRegisterTarget.FieldHLx:
+                    return TryAssignUShort(v => registers.HLx = v, () => registers.HLx = null, numericValue, out error);
+                case DynamicRegisterTarget.FieldWZ:
+                    return TryAssignUShort(v => registers.WZ = v, () => registers.WZ = null, numericValue, out error);
+                case DynamicRegisterTarget.FieldIM:
+                    return TryAssignByte(v => registers.IM = v, () => registers.IM = null, numericValue, out error);
+                case DynamicRegisterTarget.FieldIFF1:
+                    return TryAssignBool(v => registers.IFF1 = v, () => registers.IFF1 = null, numericValue, out error);
+                case DynamicRegisterTarget.FieldIFF2:
+                    return TryAssignBool(v => registers.IFF2 = v, () => registers.IFF2 = null, numericValue, out error);
+
+                case DynamicRegisterTarget.PairByteAF_High_A:
+                    return TryAssignPairByte(registers, PairByteTarget.AF_High_A, numericValue, out error);
+                case DynamicRegisterTarget.PairByteAF_Low_F:
+                    return TryAssignPairByte(registers, PairByteTarget.AF_Low_F, numericValue, out error);
+                case DynamicRegisterTarget.PairByteBC_High_B:
+                    return TryAssignPairByte(registers, PairByteTarget.BC_High_B, numericValue, out error);
+                case DynamicRegisterTarget.PairByteBC_Low_C:
+                    return TryAssignPairByte(registers, PairByteTarget.BC_Low_C, numericValue, out error);
+                case DynamicRegisterTarget.PairByteDE_High_D:
+                    return TryAssignPairByte(registers, PairByteTarget.DE_High_D, numericValue, out error);
+                case DynamicRegisterTarget.PairByteDE_Low_E:
+                    return TryAssignPairByte(registers, PairByteTarget.DE_Low_E, numericValue, out error);
+                case DynamicRegisterTarget.PairByteHL_High_H:
+                    return TryAssignPairByte(registers, PairByteTarget.HL_High_H, numericValue, out error);
+                case DynamicRegisterTarget.PairByteHL_Low_L:
+                    return TryAssignPairByte(registers, PairByteTarget.HL_Low_L, numericValue, out error);
+                case DynamicRegisterTarget.PairByteIR_High_I:
+                    return TryAssignPairByte(registers, PairByteTarget.IR_High_I, numericValue, out error);
+                case DynamicRegisterTarget.PairByteIR_Low_R:
+                    return TryAssignPairByte(registers, PairByteTarget.IR_Low_R, numericValue, out error);
+                case DynamicRegisterTarget.PairByteIX_High_XH:
+                    return TryAssignPairByte(registers, PairByteTarget.IX_High_XH, numericValue, out error);
+                case DynamicRegisterTarget.PairByteIX_Low_XL:
+                    return TryAssignPairByte(registers, PairByteTarget.IX_Low_XL, numericValue, out error);
+                case DynamicRegisterTarget.PairByteIY_High_YH:
+                    return TryAssignPairByte(registers, PairByteTarget.IY_High_YH, numericValue, out error);
+                case DynamicRegisterTarget.PairByteIY_Low_YL:
+                    return TryAssignPairByte(registers, PairByteTarget.IY_Low_YL, numericValue, out error);
+
+                default:
+                    error = $"Unsupported dynamic register target '{target}'.";
+                    return false;
+            }
+        }
+
+        private static void ClearDynamicRegisterTarget(TraceLogRegisters registers, DynamicRegisterTarget target)
+        {
+            switch (target)
+            {
+                case DynamicRegisterTarget.FieldPC: registers.PC = null; break;
+                case DynamicRegisterTarget.FieldSP: registers.SP = null; break;
+                case DynamicRegisterTarget.FieldAF: registers.AF = null; break;
+                case DynamicRegisterTarget.FieldBC: registers.BC = null; break;
+                case DynamicRegisterTarget.FieldDE: registers.DE = null; break;
+                case DynamicRegisterTarget.FieldHL: registers.HL = null; break;
+                case DynamicRegisterTarget.FieldIX: registers.IX = null; break;
+                case DynamicRegisterTarget.FieldIY: registers.IY = null; break;
+                case DynamicRegisterTarget.FieldIR: registers.IR = null; break;
+                case DynamicRegisterTarget.FieldAFx: registers.AFx = null; break;
+                case DynamicRegisterTarget.FieldBCx: registers.BCx = null; break;
+                case DynamicRegisterTarget.FieldDEx: registers.DEx = null; break;
+                case DynamicRegisterTarget.FieldHLx: registers.HLx = null; break;
+                case DynamicRegisterTarget.FieldWZ: registers.WZ = null; break;
+                case DynamicRegisterTarget.FieldIM: registers.IM = null; break;
+                case DynamicRegisterTarget.FieldIFF1: registers.IFF1 = null; break;
+                case DynamicRegisterTarget.FieldIFF2: registers.IFF2 = null; break;
+
+                case DynamicRegisterTarget.PairByteAF_High_A:
+                    ClearPairByteTarget(registers, PairByteTarget.AF_High_A); break;
+                case DynamicRegisterTarget.PairByteAF_Low_F:
+                    ClearPairByteTarget(registers, PairByteTarget.AF_Low_F); break;
+                case DynamicRegisterTarget.PairByteBC_High_B:
+                    ClearPairByteTarget(registers, PairByteTarget.BC_High_B); break;
+                case DynamicRegisterTarget.PairByteBC_Low_C:
+                    ClearPairByteTarget(registers, PairByteTarget.BC_Low_C); break;
+                case DynamicRegisterTarget.PairByteDE_High_D:
+                    ClearPairByteTarget(registers, PairByteTarget.DE_High_D); break;
+                case DynamicRegisterTarget.PairByteDE_Low_E:
+                    ClearPairByteTarget(registers, PairByteTarget.DE_Low_E); break;
+                case DynamicRegisterTarget.PairByteHL_High_H:
+                    ClearPairByteTarget(registers, PairByteTarget.HL_High_H); break;
+                case DynamicRegisterTarget.PairByteHL_Low_L:
+                    ClearPairByteTarget(registers, PairByteTarget.HL_Low_L); break;
+                case DynamicRegisterTarget.PairByteIR_High_I:
+                    ClearPairByteTarget(registers, PairByteTarget.IR_High_I); break;
+                case DynamicRegisterTarget.PairByteIR_Low_R:
+                    ClearPairByteTarget(registers, PairByteTarget.IR_Low_R); break;
+                case DynamicRegisterTarget.PairByteIX_High_XH:
+                    ClearPairByteTarget(registers, PairByteTarget.IX_High_XH); break;
+                case DynamicRegisterTarget.PairByteIX_Low_XL:
+                    ClearPairByteTarget(registers, PairByteTarget.IX_Low_XL); break;
+                case DynamicRegisterTarget.PairByteIY_High_YH:
+                    ClearPairByteTarget(registers, PairByteTarget.IY_High_YH); break;
+                case DynamicRegisterTarget.PairByteIY_Low_YL:
+                    ClearPairByteTarget(registers, PairByteTarget.IY_Low_YL); break;
+            }
+        }
+
+        private enum PairByteTarget
+        {
+            AF_High_A,
+            AF_Low_F,
+            BC_High_B,
+            BC_Low_C,
+            DE_High_D,
+            DE_Low_E,
+            HL_High_H,
+            HL_Low_L,
+            IR_High_I,
+            IR_Low_R,
+            IX_High_XH,
+            IX_Low_XL,
+            IY_High_YH,
+            IY_Low_YL
+        }
+
+        private enum DynamicRegisterTarget
+        {
+            FieldPC,
+            FieldSP,
+            FieldAF,
+            FieldBC,
+            FieldDE,
+            FieldHL,
+            FieldIX,
+            FieldIY,
+            FieldIR,
+            FieldAFx,
+            FieldBCx,
+            FieldDEx,
+            FieldHLx,
+            FieldWZ,
+            FieldIM,
+            FieldIFF1,
+            FieldIFF2,
+            PairByteAF_High_A,
+            PairByteAF_Low_F,
+            PairByteBC_High_B,
+            PairByteBC_Low_C,
+            PairByteDE_High_D,
+            PairByteDE_Low_E,
+            PairByteHL_High_H,
+            PairByteHL_Low_L,
+            PairByteIR_High_I,
+            PairByteIR_Low_R,
+            PairByteIX_High_XH,
+            PairByteIX_Low_XL,
+            PairByteIY_High_YH,
+            PairByteIY_Low_YL
         }
 
         private enum RegisterValueParseMode
@@ -1201,6 +1945,68 @@ namespace ZXTL
                 }, cancellationToken);
             }
 
+            public Task<IReadOnlyList<string>> ReadLinesAsync(
+                int startLineIndex,
+                int lineCount,
+                CancellationToken cancellationToken)
+            {
+                return Task.Run<IReadOnlyList<string>>(() =>
+                {
+                    if (lineCount <= 0 || startLineIndex < 0)
+                    {
+                        return Array.Empty<string>();
+                    }
+
+                    long[] offsets;
+                    lock (_indexLock)
+                    {
+                        if (!IsLineIndexComplete || _lineStartOffsets is null)
+                        {
+                            throw new InvalidOperationException("Line index is not ready.");
+                        }
+
+                        offsets = _lineStartOffsets.ToArray();
+                    }
+
+                    if (startLineIndex >= offsets.Length)
+                    {
+                        return Array.Empty<string>();
+                    }
+
+                    int count = Math.Min(lineCount, offsets.Length - startLineIndex);
+                    List<string> lines = new(count);
+
+                    using FileStream stream = new(
+                        FilePath,
+                        FileMode.Open,
+                        FileAccess.Read,
+                        FileShare.ReadWrite,
+                        1024 * 1024,
+                        FileOptions.SequentialScan);
+
+                    stream.Seek(offsets[startLineIndex], SeekOrigin.Begin);
+
+                    using StreamReader reader = new(
+                        stream,
+                        Encoding.UTF8,
+                        detectEncodingFromByteOrderMarks: startLineIndex == 0,
+                        bufferSize: 1024 * 1024);
+
+                    for (int i = 0; i < count; i++)
+                    {
+                        cancellationToken.ThrowIfCancellationRequested();
+                        if (reader.EndOfStream)
+                        {
+                            break;
+                        }
+
+                        lines.Add(reader.ReadLine() ?? string.Empty);
+                    }
+
+                    return (IReadOnlyList<string>)lines;
+                }, cancellationToken);
+            }
+
             public void StartBackgroundIndexing()
             {
                 _indexTask ??= Task.Run(() => BuildLineIndex(_lifetimeCts.Token), _lifetimeCts.Token);
@@ -1263,6 +2069,53 @@ namespace ZXTL
                 _lifetimeCts.Cancel();
                 _lifetimeCts.Dispose();
             }
+        }
+
+        private void utilitiesToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            GroupUtilities.Visible = !GroupUtilities.Visible;
+            if (GroupUtilities.Visible)
+            {
+                utilitiesToolStripMenuItem.Text = "Hide Utilities";
+                groupTemplateEditor.Width = GroupUtilities.Left - 20;
+                groupBoxPrimary.Width = GroupUtilities.Left - 20;
+                groupTemplateEditor.Width = GroupUtilities.Left - 20;
+                utilitiesToolStripMenuItem.Checked = true;
+            }
+            else
+            {
+                utilitiesToolStripMenuItem.Text = "Show Utilities";
+                utilitiesToolStripMenuItem.Checked = false;
+                groupTemplateEditor.Width = Form1.ActiveForm.ClientSize.Width - 20;
+                groupBoxPrimary.Width = Form1.ActiveForm.ClientSize.Width - 20;
+                groupTemplateEditor.Width = Form1.ActiveForm.ClientSize.Width - 20;
+            }
+        }
+
+        private void templateEditorToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            templateEditorToolStripMenuItem.Checked = !templateEditorToolStripMenuItem.Checked;
+            groupTemplateEditor.Visible = templateEditorToolStripMenuItem.Checked;
+            groupBoxSecondary.Visible = !templateEditorToolStripMenuItem.Checked;
+            compareLogsToolStripMenuItem.Checked = !templateEditorToolStripMenuItem.Checked;
+        }
+
+        private void compareLogsToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+
+            compareLogsToolStripMenuItem.Checked = !compareLogsToolStripMenuItem.Checked;
+            groupTemplateEditor.Visible = !compareLogsToolStripMenuItem.Checked;
+            groupBoxSecondary.Visible = compareLogsToolStripMenuItem.Checked;
+            templateEditorToolStripMenuItem.Checked = !compareLogsToolStripMenuItem.Checked;
+        }
+
+        private void Form1_Load(object sender, EventArgs e)
+        {
+            comboVersions.SelectedIndex = 2;
+            comboVersions.Enabled = false;
+
+            comboModel.SelectedIndex = 2;
+
         }
     }
 }

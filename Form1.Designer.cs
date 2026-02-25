@@ -32,8 +32,8 @@
             txtCurrentLine = new TextBox();
             label1 = new Label();
             splitter1 = new Splitter();
-            btnNextMis = new Button();
-            btnPrevMis = new Button();
+            btnNextBoth = new Button();
+            btnPrevBoth = new Button();
             btnPrevLine = new Button();
             btnNextLine = new Button();
             listBox1 = new ListBox();
@@ -88,10 +88,16 @@
             exitToolStripMenuItem = new ToolStripMenuItem();
             viewToolStripMenuItem = new ToolStripMenuItem();
             asHexToolStripMenuItem = new ToolStripMenuItem();
+            toolsToolStripMenuItem = new ToolStripMenuItem();
+            templateEditorToolStripMenuItem = new ToolStripMenuItem();
+            compareLogsToolStripMenuItem = new ToolStripMenuItem();
+            utilitiesToolStripMenuItem = new ToolStripMenuItem();
             helpToolStripMenuItem = new ToolStripMenuItem();
             zXTLWebsiteToolStripMenuItem = new ToolStripMenuItem();
             zXDiscordServerToolStripMenuItem = new ToolStripMenuItem();
             groupBoxSecondary = new GroupBox();
+            txtCurrentLine2 = new TextBox();
+            label2 = new Label();
             btnNextMis2 = new Button();
             btnPrevMis2 = new Button();
             btnPrevline2 = new Button();
@@ -140,14 +146,46 @@
             lblPC2 = new Label();
             chkSecondaryHeader = new CheckBox();
             GroupUtilities = new GroupBox();
+            label5 = new Label();
             chkVerboseDebug = new CheckBox();
             txtLog = new TextBox();
+            txtTemplate = new TextBox();
+            groupTemplateEditor = new GroupBox();
+            btnGrabLine = new Button();
+            btnClearTemplate = new Button();
+            btnSelectSnapshot = new Button();
+            label8 = new Label();
+            txtSnapshotFile = new TextBox();
+            label7 = new Label();
+            comboModel = new ComboBox();
+            chkUseViewmem = new CheckBox();
+            chkUseJumps = new CheckBox();
+            chkUseSlice = new CheckBox();
+            chkUseTabbed = new CheckBox();
+            chkTrimLen = new CheckBox();
+            label6 = new Label();
+            chkAutoFieldLen = new CheckBox();
+            ChkFieldLen = new CheckBox();
+            txtFieldLen = new TextBox();
+            label4 = new Label();
+            comboVersions = new ComboBox();
+            label3 = new Label();
+            txtEmulatorName = new TextBox();
+            listPairs = new ListBox();
+            comboPrefixes = new ComboBox();
+            chkUseHexPrefix = new CheckBox();
+            chkUseHex = new CheckBox();
+            listOptions = new ListBox();
+            listSingleRegs = new ListBox();
+            richTextBox1 = new RichTextBox();
+            button1 = new Button();
             groupBoxPrimary.SuspendLayout();
             GroupFlagsPrimary.SuspendLayout();
             menuStrip1.SuspendLayout();
             groupBoxSecondary.SuspendLayout();
             GroupFlagsSecondary.SuspendLayout();
             GroupUtilities.SuspendLayout();
+            groupTemplateEditor.SuspendLayout();
             SuspendLayout();
             // 
             // groupBoxPrimary
@@ -156,8 +194,8 @@
             groupBoxPrimary.Controls.Add(txtCurrentLine);
             groupBoxPrimary.Controls.Add(label1);
             groupBoxPrimary.Controls.Add(splitter1);
-            groupBoxPrimary.Controls.Add(btnNextMis);
-            groupBoxPrimary.Controls.Add(btnPrevMis);
+            groupBoxPrimary.Controls.Add(btnNextBoth);
+            groupBoxPrimary.Controls.Add(btnPrevBoth);
             groupBoxPrimary.Controls.Add(btnPrevLine);
             groupBoxPrimary.Controls.Add(btnNextLine);
             groupBoxPrimary.Controls.Add(listBox1);
@@ -206,7 +244,7 @@
             // 
             txtCurrentLine.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
             txtCurrentLine.Font = new Font("JetBrains Mono", 8.999999F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            txtCurrentLine.Location = new Point(624, 282);
+            txtCurrentLine.Location = new Point(239, 282);
             txtCurrentLine.Name = "txtCurrentLine";
             txtCurrentLine.Size = new Size(44, 23);
             txtCurrentLine.TabIndex = 43;
@@ -216,7 +254,7 @@
             // 
             label1.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
             label1.AutoSize = true;
-            label1.Location = new Point(583, 286);
+            label1.Location = new Point(198, 286);
             label1.Name = "label1";
             label1.Size = new Size(35, 16);
             label1.TabIndex = 42;
@@ -233,25 +271,25 @@
             splitter1.TabIndex = 41;
             splitter1.TabStop = false;
             // 
-            // btnNextMis
+            // btnNextBoth
             // 
-            btnNextMis.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
-            btnNextMis.Location = new Point(783, 282);
-            btnNextMis.Name = "btnNextMis";
-            btnNextMis.Size = new Size(103, 23);
-            btnNextMis.TabIndex = 40;
-            btnNextMis.Text = "Next >";
-            btnNextMis.UseVisualStyleBackColor = true;
+            btnNextBoth.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
+            btnNextBoth.Location = new Point(783, 282);
+            btnNextBoth.Name = "btnNextBoth";
+            btnNextBoth.Size = new Size(103, 23);
+            btnNextBoth.TabIndex = 40;
+            btnNextBoth.Text = "Next >";
+            btnNextBoth.UseVisualStyleBackColor = true;
             // 
-            // btnPrevMis
+            // btnPrevBoth
             // 
-            btnPrevMis.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
-            btnPrevMis.Location = new Point(674, 282);
-            btnPrevMis.Name = "btnPrevMis";
-            btnPrevMis.Size = new Size(103, 23);
-            btnPrevMis.TabIndex = 39;
-            btnPrevMis.Text = "< Prev";
-            btnPrevMis.UseVisualStyleBackColor = true;
+            btnPrevBoth.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
+            btnPrevBoth.Location = new Point(674, 282);
+            btnPrevBoth.Name = "btnPrevBoth";
+            btnPrevBoth.Size = new Size(103, 23);
+            btnPrevBoth.TabIndex = 39;
+            btnPrevBoth.Text = "< Prev";
+            btnPrevBoth.UseVisualStyleBackColor = true;
             // 
             // btnPrevLine
             // 
@@ -679,7 +717,7 @@
             // 
             chkPrimaryHeader.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
             chkPrimaryHeader.AutoSize = true;
-            chkPrimaryHeader.Location = new Point(195, 256);
+            chkPrimaryHeader.Location = new Point(565, 284);
             chkPrimaryHeader.Name = "chkPrimaryHeader";
             chkPrimaryHeader.Size = new Size(103, 20);
             chkPrimaryHeader.TabIndex = 38;
@@ -688,7 +726,7 @@
             // 
             // menuStrip1
             // 
-            menuStrip1.Items.AddRange(new ToolStripItem[] { fileToolStripMenuItem, viewToolStripMenuItem, helpToolStripMenuItem });
+            menuStrip1.Items.AddRange(new ToolStripItem[] { fileToolStripMenuItem, viewToolStripMenuItem, toolsToolStripMenuItem, helpToolStripMenuItem });
             menuStrip1.Location = new Point(0, 0);
             menuStrip1.Name = "menuStrip1";
             menuStrip1.Size = new Size(1294, 24);
@@ -750,6 +788,36 @@
             asHexToolStripMenuItem.Size = new Size(108, 22);
             asHexToolStripMenuItem.Text = "as Hex";
             // 
+            // toolsToolStripMenuItem
+            // 
+            toolsToolStripMenuItem.DropDownItems.AddRange(new ToolStripItem[] { templateEditorToolStripMenuItem, compareLogsToolStripMenuItem, utilitiesToolStripMenuItem });
+            toolsToolStripMenuItem.Name = "toolsToolStripMenuItem";
+            toolsToolStripMenuItem.Size = new Size(47, 20);
+            toolsToolStripMenuItem.Text = "Tools";
+            // 
+            // templateEditorToolStripMenuItem
+            // 
+            templateEditorToolStripMenuItem.Name = "templateEditorToolStripMenuItem";
+            templateEditorToolStripMenuItem.Size = new Size(157, 22);
+            templateEditorToolStripMenuItem.Text = "Template Editor";
+            templateEditorToolStripMenuItem.Click += templateEditorToolStripMenuItem_Click;
+            // 
+            // compareLogsToolStripMenuItem
+            // 
+            compareLogsToolStripMenuItem.Name = "compareLogsToolStripMenuItem";
+            compareLogsToolStripMenuItem.Size = new Size(157, 22);
+            compareLogsToolStripMenuItem.Text = "Compare Logs";
+            compareLogsToolStripMenuItem.Click += compareLogsToolStripMenuItem_Click;
+            // 
+            // utilitiesToolStripMenuItem
+            // 
+            utilitiesToolStripMenuItem.Checked = true;
+            utilitiesToolStripMenuItem.CheckState = CheckState.Checked;
+            utilitiesToolStripMenuItem.Name = "utilitiesToolStripMenuItem";
+            utilitiesToolStripMenuItem.Size = new Size(157, 22);
+            utilitiesToolStripMenuItem.Text = "Utilities";
+            utilitiesToolStripMenuItem.Click += utilitiesToolStripMenuItem_Click;
+            // 
             // helpToolStripMenuItem
             // 
             helpToolStripMenuItem.DropDownItems.AddRange(new ToolStripItem[] { zXTLWebsiteToolStripMenuItem, zXDiscordServerToolStripMenuItem });
@@ -772,6 +840,8 @@
             // groupBoxSecondary
             // 
             groupBoxSecondary.Anchor = AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
+            groupBoxSecondary.Controls.Add(txtCurrentLine2);
+            groupBoxSecondary.Controls.Add(label2);
             groupBoxSecondary.Controls.Add(btnNextMis2);
             groupBoxSecondary.Controls.Add(btnPrevMis2);
             groupBoxSecondary.Controls.Add(btnPrevline2);
@@ -817,6 +887,26 @@
             groupBoxSecondary.TabIndex = 2;
             groupBoxSecondary.TabStop = false;
             groupBoxSecondary.Text = "Secondary Log";
+            // 
+            // txtCurrentLine2
+            // 
+            txtCurrentLine2.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
+            txtCurrentLine2.Font = new Font("JetBrains Mono", 8.999999F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            txtCurrentLine2.Location = new Point(239, 275);
+            txtCurrentLine2.Name = "txtCurrentLine2";
+            txtCurrentLine2.Size = new Size(44, 23);
+            txtCurrentLine2.TabIndex = 45;
+            txtCurrentLine2.Text = "1";
+            // 
+            // label2
+            // 
+            label2.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
+            label2.AutoSize = true;
+            label2.Location = new Point(198, 279);
+            label2.Name = "label2";
+            label2.Size = new Size(35, 16);
+            label2.TabIndex = 44;
+            label2.Text = "Line";
             // 
             // btnNextMis2
             // 
@@ -1264,7 +1354,7 @@
             // 
             chkSecondaryHeader.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
             chkSecondaryHeader.AutoSize = true;
-            chkSecondaryHeader.Location = new Point(195, 256);
+            chkSecondaryHeader.Location = new Point(565, 273);
             chkSecondaryHeader.Name = "chkSecondaryHeader";
             chkSecondaryHeader.Size = new Size(103, 20);
             chkSecondaryHeader.TabIndex = 38;
@@ -1274,6 +1364,7 @@
             // GroupUtilities
             // 
             GroupUtilities.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Right;
+            GroupUtilities.Controls.Add(label5);
             GroupUtilities.Controls.Add(chkVerboseDebug);
             GroupUtilities.Controls.Add(txtLog);
             GroupUtilities.Location = new Point(1087, 30);
@@ -1283,12 +1374,21 @@
             GroupUtilities.TabStop = false;
             GroupUtilities.Text = "Utilities";
             // 
+            // label5
+            // 
+            label5.AutoSize = true;
+            label5.Location = new Point(6, 29);
+            label5.Name = "label5";
+            label5.Size = new Size(105, 16);
+            label5.TabIndex = 2;
+            label5.Text = "Console Output";
+            // 
             // chkVerboseDebug
             // 
             chkVerboseDebug.AutoSize = true;
             chkVerboseDebug.Checked = true;
             chkVerboseDebug.CheckState = CheckState.Checked;
-            chkVerboseDebug.Location = new Point(6, 355);
+            chkVerboseDebug.Location = new Point(6, 381);
             chkVerboseDebug.Name = "chkVerboseDebug";
             chkVerboseDebug.Size = new Size(75, 20);
             chkVerboseDebug.TabIndex = 1;
@@ -1298,17 +1398,356 @@
             // txtLog
             // 
             txtLog.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
-            txtLog.Location = new Point(6, 22);
+            txtLog.Location = new Point(6, 48);
             txtLog.Multiline = true;
             txtLog.Name = "txtLog";
             txtLog.Size = new Size(183, 327);
             txtLog.TabIndex = 0;
+            // 
+            // txtTemplate
+            // 
+            txtTemplate.Anchor = AnchorStyles.Left | AnchorStyles.Right;
+            txtTemplate.Location = new Point(12, 261);
+            txtTemplate.Name = "txtTemplate";
+            txtTemplate.Size = new Size(1047, 23);
+            txtTemplate.TabIndex = 4;
+            txtTemplate.Text = "ZXTL v0003, ZXTL Tool V0.3";
+            // 
+            // groupTemplateEditor
+            // 
+            groupTemplateEditor.Anchor = AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
+            groupTemplateEditor.Controls.Add(btnGrabLine);
+            groupTemplateEditor.Controls.Add(btnClearTemplate);
+            groupTemplateEditor.Controls.Add(btnSelectSnapshot);
+            groupTemplateEditor.Controls.Add(label8);
+            groupTemplateEditor.Controls.Add(txtSnapshotFile);
+            groupTemplateEditor.Controls.Add(label7);
+            groupTemplateEditor.Controls.Add(comboModel);
+            groupTemplateEditor.Controls.Add(chkUseViewmem);
+            groupTemplateEditor.Controls.Add(chkUseJumps);
+            groupTemplateEditor.Controls.Add(chkUseSlice);
+            groupTemplateEditor.Controls.Add(chkUseTabbed);
+            groupTemplateEditor.Controls.Add(chkTrimLen);
+            groupTemplateEditor.Controls.Add(label6);
+            groupTemplateEditor.Controls.Add(chkAutoFieldLen);
+            groupTemplateEditor.Controls.Add(ChkFieldLen);
+            groupTemplateEditor.Controls.Add(txtFieldLen);
+            groupTemplateEditor.Controls.Add(label4);
+            groupTemplateEditor.Controls.Add(comboVersions);
+            groupTemplateEditor.Controls.Add(label3);
+            groupTemplateEditor.Controls.Add(txtEmulatorName);
+            groupTemplateEditor.Controls.Add(listPairs);
+            groupTemplateEditor.Controls.Add(comboPrefixes);
+            groupTemplateEditor.Controls.Add(chkUseHexPrefix);
+            groupTemplateEditor.Controls.Add(chkUseHex);
+            groupTemplateEditor.Controls.Add(listOptions);
+            groupTemplateEditor.Controls.Add(listSingleRegs);
+            groupTemplateEditor.Controls.Add(richTextBox1);
+            groupTemplateEditor.Controls.Add(button1);
+            groupTemplateEditor.Controls.Add(txtTemplate);
+            groupTemplateEditor.Location = new Point(12, 347);
+            groupTemplateEditor.Name = "groupTemplateEditor";
+            groupTemplateEditor.Size = new Size(1069, 310);
+            groupTemplateEditor.TabIndex = 46;
+            groupTemplateEditor.TabStop = false;
+            groupTemplateEditor.Text = "Trace Template Editor";
+            // 
+            // btnGrabLine
+            // 
+            btnGrabLine.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
+            btnGrabLine.Location = new Point(12, 287);
+            btnGrabLine.Name = "btnGrabLine";
+            btnGrabLine.Size = new Size(199, 23);
+            btnGrabLine.TabIndex = 33;
+            btnGrabLine.Text = "Start: Grab Trace Line";
+            btnGrabLine.UseVisualStyleBackColor = true;
+            // 
+            // btnClearTemplate
+            // 
+            btnClearTemplate.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
+            btnClearTemplate.Location = new Point(217, 287);
+            btnClearTemplate.Name = "btnClearTemplate";
+            btnClearTemplate.Size = new Size(126, 23);
+            btnClearTemplate.TabIndex = 32;
+            btnClearTemplate.Text = "Clear Template";
+            btnClearTemplate.UseVisualStyleBackColor = true;
+            // 
+            // btnSelectSnapshot
+            // 
+            btnSelectSnapshot.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
+            btnSelectSnapshot.Location = new Point(1022, 176);
+            btnSelectSnapshot.Name = "btnSelectSnapshot";
+            btnSelectSnapshot.Size = new Size(37, 23);
+            btnSelectSnapshot.TabIndex = 31;
+            btnSelectSnapshot.Text = "...";
+            btnSelectSnapshot.UseVisualStyleBackColor = true;
+            // 
+            // label8
+            // 
+            label8.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+            label8.AutoSize = true;
+            label8.Location = new Point(752, 179);
+            label8.Name = "label8";
+            label8.Size = new Size(105, 16);
+            label8.TabIndex = 30;
+            label8.Text = "Snapshot File:";
+            // 
+            // txtSnapshotFile
+            // 
+            txtSnapshotFile.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+            txtSnapshotFile.Location = new Point(863, 176);
+            txtSnapshotFile.Name = "txtSnapshotFile";
+            txtSnapshotFile.ReadOnly = true;
+            txtSnapshotFile.Size = new Size(153, 23);
+            txtSnapshotFile.TabIndex = 29;
+            txtSnapshotFile.Text = "Not Set.";
+            // 
+            // label7
+            // 
+            label7.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+            label7.AutoSize = true;
+            label7.Location = new Point(752, 149);
+            label7.Name = "label7";
+            label7.Size = new Size(105, 16);
+            label7.TabIndex = 28;
+            label7.Text = "Machine Model:";
+            // 
+            // comboModel
+            // 
+            comboModel.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+            comboModel.DropDownStyle = ComboBoxStyle.DropDownList;
+            comboModel.FormattingEnabled = true;
+            comboModel.Items.AddRange(new object[] { "16", "48", "128", "+2", "+2A", "+3", "PT", "TC", "TK" });
+            comboModel.Location = new Point(862, 146);
+            comboModel.Name = "comboModel";
+            comboModel.Size = new Size(197, 24);
+            comboModel.TabIndex = 27;
+            // 
+            // chkUseViewmem
+            // 
+            chkUseViewmem.AutoSize = true;
+            chkUseViewmem.Checked = true;
+            chkUseViewmem.CheckState = CheckState.Checked;
+            chkUseViewmem.Location = new Point(506, 157);
+            chkUseViewmem.Name = "chkUseViewmem";
+            chkUseViewmem.Size = new Size(187, 20);
+            chkUseViewmem.TabIndex = 26;
+            chkUseViewmem.Text = "Viewmem: Show all bytes";
+            chkUseViewmem.UseVisualStyleBackColor = true;
+            // 
+            // chkUseJumps
+            // 
+            chkUseJumps.AutoSize = true;
+            chkUseJumps.Location = new Point(506, 208);
+            chkUseJumps.Name = "chkUseJumps";
+            chkUseJumps.Size = new Size(271, 20);
+            chkUseJumps.TabIndex = 25;
+            chkUseJumps.Text = "OnlyJumps: Log on control flow only";
+            chkUseJumps.UseVisualStyleBackColor = true;
+            // 
+            // chkUseSlice
+            // 
+            chkUseSlice.AutoSize = true;
+            chkUseSlice.Location = new Point(506, 234);
+            chkUseSlice.Name = "chkUseSlice";
+            chkUseSlice.Size = new Size(271, 20);
+            chkUseSlice.TabIndex = 24;
+            chkUseSlice.Text = "Slice: inst. is logged before exec.";
+            chkUseSlice.UseVisualStyleBackColor = true;
+            // 
+            // chkUseTabbed
+            // 
+            chkUseTabbed.AutoSize = true;
+            chkUseTabbed.Location = new Point(506, 182);
+            chkUseTabbed.Name = "chkUseTabbed";
+            chkUseTabbed.Size = new Size(208, 20);
+            chkUseTabbed.TabIndex = 23;
+            chkUseTabbed.Text = "Use Tabs instead of Spaces";
+            chkUseTabbed.UseVisualStyleBackColor = true;
+            // 
+            // chkTrimLen
+            // 
+            chkTrimLen.AutoSize = true;
+            chkTrimLen.Checked = true;
+            chkTrimLen.CheckState = CheckState.Checked;
+            chkTrimLen.Location = new Point(289, 182);
+            chkTrimLen.Name = "chkTrimLen";
+            chkTrimLen.Size = new Size(131, 20);
+            chkTrimLen.TabIndex = 22;
+            chkTrimLen.Text = "Trim Whitespace";
+            chkTrimLen.UseVisualStyleBackColor = true;
+            // 
+            // label6
+            // 
+            label6.AutoSize = true;
+            label6.Location = new Point(289, 94);
+            label6.Name = "label6";
+            label6.Size = new Size(273, 48);
+            label6.TabIndex = 21;
+            label6.Text = "Select a field from the text box above\r\nand double click a list item to \r\nadd it to Template";
+            // 
+            // chkAutoFieldLen
+            // 
+            chkAutoFieldLen.AutoSize = true;
+            chkAutoFieldLen.Checked = true;
+            chkAutoFieldLen.CheckState = CheckState.Checked;
+            chkAutoFieldLen.Location = new Point(289, 208);
+            chkAutoFieldLen.Name = "chkAutoFieldLen";
+            chkAutoFieldLen.Size = new Size(194, 20);
+            chkAutoFieldLen.TabIndex = 20;
+            chkAutoFieldLen.Text = "Measure Selection Length";
+            chkAutoFieldLen.UseVisualStyleBackColor = true;
+            // 
+            // ChkFieldLen
+            // 
+            ChkFieldLen.AutoSize = true;
+            ChkFieldLen.Checked = true;
+            ChkFieldLen.CheckState = CheckState.Checked;
+            ChkFieldLen.Location = new Point(289, 234);
+            ChkFieldLen.Name = "ChkFieldLen";
+            ChkFieldLen.Size = new Size(103, 20);
+            ChkFieldLen.TabIndex = 19;
+            ChkFieldLen.Text = "Use Length:";
+            ChkFieldLen.UseVisualStyleBackColor = true;
+            // 
+            // txtFieldLen
+            // 
+            txtFieldLen.Location = new Point(398, 232);
+            txtFieldLen.Name = "txtFieldLen";
+            txtFieldLen.Size = new Size(40, 23);
+            txtFieldLen.TabIndex = 17;
+            txtFieldLen.Text = "0";
+            // 
+            // label4
+            // 
+            label4.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+            label4.AutoSize = true;
+            label4.Location = new Point(766, 119);
+            label4.Name = "label4";
+            label4.Size = new Size(91, 16);
+            label4.TabIndex = 16;
+            label4.Text = "ZXTL Compat:";
+            // 
+            // comboVersions
+            // 
+            comboVersions.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+            comboVersions.DropDownStyle = ComboBoxStyle.DropDownList;
+            comboVersions.FormattingEnabled = true;
+            comboVersions.Items.AddRange(new object[] { "0001", "0002", "0003" });
+            comboVersions.Location = new Point(863, 116);
+            comboVersions.Name = "comboVersions";
+            comboVersions.Size = new Size(197, 24);
+            comboVersions.TabIndex = 15;
+            // 
+            // label3
+            // 
+            label3.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+            label3.AutoSize = true;
+            label3.Location = new Point(752, 90);
+            label3.Name = "label3";
+            label3.Size = new Size(105, 16);
+            label3.TabIndex = 14;
+            label3.Text = "Emulator Name:";
+            // 
+            // txtEmulatorName
+            // 
+            txtEmulatorName.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+            txtEmulatorName.Location = new Point(863, 87);
+            txtEmulatorName.Name = "txtEmulatorName";
+            txtEmulatorName.ReadOnly = true;
+            txtEmulatorName.Size = new Size(197, 23);
+            txtEmulatorName.TabIndex = 13;
+            txtEmulatorName.Text = "ZXTL Tool V0.3";
+            // 
+            // listPairs
+            // 
+            listPairs.FormattingEnabled = true;
+            listPairs.Items.AddRange(new object[] { "PC", "SP", "AF", "BC", "DE", "HL", "IX ", "IY", "IR", "AF'", "BC'", "DE'", "HL'", "WZ", "IM", "IFF1", "IFF2" });
+            listPairs.Location = new Point(89, 90);
+            listPairs.Name = "listPairs";
+            listPairs.Size = new Size(63, 164);
+            listPairs.TabIndex = 12;
+            // 
+            // comboPrefixes
+            // 
+            comboPrefixes.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+            comboPrefixes.FormattingEnabled = true;
+            comboPrefixes.Items.AddRange(new object[] { "$", "#" });
+            comboPrefixes.Location = new Point(1022, 229);
+            comboPrefixes.Name = "comboPrefixes";
+            comboPrefixes.Size = new Size(41, 24);
+            comboPrefixes.TabIndex = 11;
+            comboPrefixes.Text = "$";
+            // 
+            // chkUseHexPrefix
+            // 
+            chkUseHexPrefix.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+            chkUseHexPrefix.AutoSize = true;
+            chkUseHexPrefix.Checked = true;
+            chkUseHexPrefix.CheckState = CheckState.Checked;
+            chkUseHexPrefix.Location = new Point(927, 231);
+            chkUseHexPrefix.Name = "chkUseHexPrefix";
+            chkUseHexPrefix.Size = new Size(89, 20);
+            chkUseHexPrefix.TabIndex = 10;
+            chkUseHexPrefix.Text = "Prefixed:";
+            chkUseHexPrefix.UseVisualStyleBackColor = true;
+            // 
+            // chkUseHex
+            // 
+            chkUseHex.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+            chkUseHex.AutoSize = true;
+            chkUseHex.Checked = true;
+            chkUseHex.CheckState = CheckState.Checked;
+            chkUseHex.Location = new Point(803, 232);
+            chkUseHex.Name = "chkUseHex";
+            chkUseHex.Size = new Size(117, 20);
+            chkUseHex.TabIndex = 9;
+            chkUseHex.Text = "Hex Values ->";
+            chkUseHex.UseVisualStyleBackColor = true;
+            // 
+            // listOptions
+            // 
+            listOptions.FormattingEnabled = true;
+            listOptions.Items.AddRange(new object[] { "CYCLE", "ADDRESS", "MARKERS", "DISASSEMBLY", "MEM4", "INDEX", "ASCII4", "BASEREGS", "EXREGS", "INTREGS" });
+            listOptions.Location = new Point(165, 90);
+            listOptions.Name = "listOptions";
+            listOptions.Size = new Size(118, 164);
+            listOptions.TabIndex = 8;
+            // 
+            // listSingleRegs
+            // 
+            listSingleRegs.FormattingEnabled = true;
+            listSingleRegs.Items.AddRange(new object[] { "A", "F", "B", "C", "D", "E", "H", "L", "XH", "XL", "YH", "YL", "I", "R" });
+            listSingleRegs.Location = new Point(12, 90);
+            listSingleRegs.Name = "listSingleRegs";
+            listSingleRegs.Size = new Size(63, 164);
+            listSingleRegs.TabIndex = 7;
+            // 
+            // richTextBox1
+            // 
+            richTextBox1.Anchor = AnchorStyles.Left | AnchorStyles.Right;
+            richTextBox1.Location = new Point(12, 22);
+            richTextBox1.Name = "richTextBox1";
+            richTextBox1.Size = new Size(1048, 62);
+            richTextBox1.TabIndex = 6;
+            richTextBox1.Text = "";
+            // 
+            // button1
+            // 
+            button1.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
+            button1.Location = new Point(957, 287);
+            button1.Name = "button1";
+            button1.Size = new Size(103, 23);
+            button1.TabIndex = 5;
+            button1.Text = "Save Trace";
+            button1.UseVisualStyleBackColor = true;
             // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(7F, 16F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(1294, 669);
+            Controls.Add(groupTemplateEditor);
             Controls.Add(GroupUtilities);
             Controls.Add(groupBoxSecondary);
             Controls.Add(groupBoxPrimary);
@@ -1318,6 +1757,7 @@
             MinimumSize = new Size(720, 708);
             Name = "Form1";
             Text = "ZX Trace Log Tool V0.3";
+            Load += Form1_Load;
             groupBoxPrimary.ResumeLayout(false);
             groupBoxPrimary.PerformLayout();
             GroupFlagsPrimary.ResumeLayout(false);
@@ -1330,6 +1770,8 @@
             GroupFlagsSecondary.PerformLayout();
             GroupUtilities.ResumeLayout(false);
             GroupUtilities.PerformLayout();
+            groupTemplateEditor.ResumeLayout(false);
+            groupTemplateEditor.PerformLayout();
             ResumeLayout(false);
             PerformLayout();
         }
@@ -1380,8 +1822,8 @@
         private Button btnNextLine;
         private ListBox listBox1;
         private GroupBox GroupFlagsPrimary;
-        private Button btnNextMis;
-        private Button btnPrevMis;
+        private Button btnNextBoth;
+        private Button btnPrevBoth;
         private Button btnPrevLine;
         private CheckBox chkPrimaryHeader;
         private MenuStrip menuStrip1;
@@ -1450,6 +1892,43 @@
         private GroupBox GroupUtilities;
         private TextBox txtLog;
         private CheckBox chkVerboseDebug;
+        private TextBox txtCurrentLine2;
+        private Label label2;
+        private TextBox txtTemplate;
+        private GroupBox groupTemplateEditor;
+        private RichTextBox richTextBox1;
+        private Button button1;
+        private ListBox listSingleRegs;
+        private ComboBox comboPrefixes;
+        private CheckBox chkUseHexPrefix;
+        private CheckBox chkUseHex;
+        private ListBox listOptions;
+        private ListBox listPairs;
+        private Label label4;
+        private ComboBox comboVersions;
+        private Label label3;
+        private TextBox txtEmulatorName;
+        private ToolStripMenuItem toolsToolStripMenuItem;
+        private ToolStripMenuItem templateEditorToolStripMenuItem;
+        private ToolStripMenuItem compareLogsToolStripMenuItem;
+        private ToolStripMenuItem utilitiesToolStripMenuItem;
+        private Label label5;
+        private Label label6;
+        private CheckBox chkAutoFieldLen;
+        private CheckBox ChkFieldLen;
+        private TextBox txtFieldLen;
+        private CheckBox chkTrimLen;
+        private CheckBox chkUseTabbed;
+        private CheckBox chkUseJumps;
+        private CheckBox chkUseSlice;
+        private CheckBox chkUseViewmem;
+        private Label label7;
+        private ComboBox comboModel;
+        private Button btnSelectSnapshot;
+        private Label label8;
+        private TextBox txtSnapshotFile;
+        private Button btnClearTemplate;
+        private Button btnGrabLine;
     }
 }
 
