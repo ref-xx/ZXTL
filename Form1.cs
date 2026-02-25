@@ -1,4 +1,5 @@
 using System.Text;
+using System.Globalization;
 
 namespace ZXTL
 {
@@ -15,6 +16,8 @@ namespace ZXTL
 
             _primaryPane.Initialize(groupBoxPrimary, listBox1, "Primary Log");
             _secondaryPane.Initialize(groupBoxSecondary, listBox2, "Secondary Log");
+            WireOptionalHeaderVisibilityCheckboxes();
+            WirePaneSelectionHandlers();
         }
 
         protected override void OnFormClosed(FormClosedEventArgs e)
@@ -59,6 +62,7 @@ namespace ZXTL
             pane.Document?.Dispose();
             pane.Document = null;
             pane.VisibleStartLine = 0;
+            pane.PreviewLines.Clear();
             pane.LogData.Reset();
 
             TraceLogDocument document = new(filePath);
@@ -88,8 +92,16 @@ namespace ZXTL
                     TryPopulateTemplateData(pane.LogData, previewLines[0]);
                 }
 
+                pane.PreviewLines.Clear();
+                pane.PreviewLines.AddRange(previewLines);
+
+                if (pane.LogData.HasTemplateHeader)
+                {
+                    pane.LogData.HeaderLine = previewLines.Count > 1 ? previewLines[1] : null;
+                }
+
                 ReportLogDetails(pane.LogData);
-                SetListBoxItems(pane.ListBox, previewLines);
+                RefreshPanePreviewDisplay(pane);
                 document.StartBackgroundIndexing();
             }
             catch (OperationCanceledException)
@@ -97,6 +109,7 @@ namespace ZXTL
                 if (ReferenceEquals(pane.Document, document))
                 {
                     pane.Document = null;
+                    pane.PreviewLines.Clear();
                     pane.LogData.Reset();
                     pane.GroupBox.Text = pane.BaseTitle;
                     SetListBoxItems(pane.ListBox, new[] { "Load canceled." });
@@ -107,6 +120,7 @@ namespace ZXTL
                 if (ReferenceEquals(pane.Document, document))
                 {
                     pane.Document = null;
+                    pane.PreviewLines.Clear();
                     pane.LogData.Reset();
                     pane.GroupBox.Text = pane.BaseTitle;
                     SetListBoxItems(pane.ListBox, new[] { "Failed to open log." });
@@ -166,6 +180,749 @@ namespace ZXTL
             }
 
             return $"{value:0.##} {units[unitIndex]}";
+        }
+
+        private void WireOptionalHeaderVisibilityCheckboxes()
+        {
+            TryWireHeaderVisibilityCheckbox("chkPrimaryHeader", _primaryPane);
+            TryWireHeaderVisibilityCheckbox("chkSecondaryHeader", _secondaryPane);
+        }
+
+        private void WirePaneSelectionHandlers()
+        {
+            _primaryPane.ListBox.SelectedIndexChanged += (_, _) => OnPreviewSelectionChanged(_primaryPane);
+            _secondaryPane.ListBox.SelectedIndexChanged += (_, _) => OnPreviewSelectionChanged(_secondaryPane);
+        }
+
+        private void TryWireHeaderVisibilityCheckbox(string checkboxName, LogPaneState pane)
+        {
+            if (FindControlRecursive<CheckBox>(this, checkboxName) is not CheckBox checkBox)
+            {
+                return;
+            }
+
+            pane.HeaderVisibilityCheckBox = checkBox;
+            checkBox.CheckedChanged += (_, _) => RefreshPanePreviewDisplay(pane);
+        }
+
+        private void RefreshPanePreviewDisplay(LogPaneState pane)
+        {
+            SetListBoxItems(pane.ListBox, BuildPreviewDisplayLines(pane));
+        }
+
+        private static IReadOnlyList<string> BuildPreviewDisplayLines(LogPaneState pane)
+        {
+            if (pane.PreviewLines.Count == 0)
+            {
+                return Array.Empty<string>();
+            }
+
+            if (!pane.LogData.HasTemplateHeader)
+            {
+                return pane.PreviewLines;
+            }
+
+            List<string> displayLines = new(pane.PreviewLines.Count);
+            bool hideHeaderLine = pane.HeaderVisibilityCheckBox?.Checked == true;
+
+            // ZXTL first line is template and is never shown in the list.
+            if (!hideHeaderLine && !string.IsNullOrEmpty(pane.LogData.HeaderLine))
+            {
+                displayLines.Add(pane.LogData.HeaderLine);
+            }
+
+            // Remaining trace preview starts after template (line 1) and header (line 2).
+            for (int i = 2; i < pane.PreviewLines.Count; i++)
+            {
+                displayLines.Add(pane.PreviewLines[i]);
+            }
+
+            return displayLines;
+        }
+
+        private void OnPreviewSelectionChanged(LogPaneState pane)
+        {
+            if (pane.ListBox.SelectedIndex < 0)
+            {
+                pane.LogData.SelectedLine.Clear();
+                PopulateRegisterBoxes(pane);
+                return;
+            }
+
+            if (pane.ListBox.SelectedItem is not string selectedText)
+            {
+                pane.LogData.SelectedLine.Clear();
+                PopulateRegisterBoxes(pane);
+                return;
+            }
+
+            if (IsHeaderDisplaySelection(pane, pane.ListBox.SelectedIndex))
+            {
+                pane.LogData.SelectedLine.Clear();
+                PopulateRegisterBoxes(pane);
+                return;
+            }
+
+            if (!pane.LogData.HasTemplateHeader)
+            {
+                pane.LogData.SelectedLine.Clear();
+                PopulateRegisterBoxes(pane);
+                return;
+            }
+
+            if (pane.LogData.OrderDefinition.Items.Count == 0)
+            {
+                pane.LogData.SelectedLine.Clear();
+                PopulateRegisterBoxes(pane);
+                AppendVerboseLog($"[{DateTime.Now:HH:mm:ss}] {pane.BaseTitle} selected line parse skipped: ORDER list is empty.{Environment.NewLine}{Environment.NewLine}");
+                return;
+            }
+
+            IReadOnlyList<TraceLogOrderFieldSpec> orderItems = pane.LogData.OrderDefinition.Items;
+            bool parsedOk = TryParseTracePreviewLineByOrder(
+                selectedText,
+                orderItems,
+                pane.LogData.Opts.IsTabbed,
+                out List<string> values,
+                out string? parseError);
+
+            StringBuilder sb = new();
+            sb.AppendLine($"[{DateTime.Now:HH:mm:ss}] {pane.BaseTitle} Selected Preview Item");
+            sb.AppendLine($"ParseMode: {(pane.LogData.Opts.IsTabbed ? "ORDER + TAB" : "ORDER + SPACE+")}");
+            sb.AppendLine($"OrderCount: {orderItems.Count}");
+            sb.AppendLine($"ValueCount: {values.Count}");
+
+            if (!parsedOk || values.Count != orderItems.Count)
+            {
+                pane.LogData.SelectedLine.Clear();
+                sb.AppendLine("ERROR: Parsed value count does not match ORDER item count.");
+                if (!string.IsNullOrWhiteSpace(parseError))
+                {
+                    sb.AppendLine($"Reason: {parseError}");
+                }
+                sb.AppendLine($"Line: {selectedText}");
+            }
+            else
+            {
+                pane.LogData.SelectedLine.Clear();
+
+                for (int i = 0; i < orderItems.Count; i++)
+                {
+                    TraceLogOrderFieldSpec item = orderItems[i];
+                    sb.AppendLine($"  [{i:00}] {TraceLogOrderParser.Describe(item)} => \"{values[i]}\"");
+                }
+
+                ApplyParsedValuesToSelectedLine(pane, orderItems, values, sb);
+            }
+
+            sb.AppendLine();
+            AppendVerboseLog(sb.ToString());
+            PopulateRegisterBoxes(pane);
+        }
+
+        private static bool IsHeaderDisplaySelection(LogPaneState pane, int selectedIndex)
+        {
+            if (!pane.LogData.HasTemplateHeader)
+            {
+                return false;
+            }
+
+            if (string.IsNullOrEmpty(pane.LogData.HeaderLine))
+            {
+                return false;
+            }
+
+            bool hideHeaderLine = pane.HeaderVisibilityCheckBox?.Checked == true;
+            return !hideHeaderLine && selectedIndex == 0;
+        }
+
+        private static bool TryParseTracePreviewLineByOrder(
+            string line,
+            IReadOnlyList<TraceLogOrderFieldSpec> orderItems,
+            bool isTabbed,
+            out List<string> values,
+            out string? error)
+        {
+            values = new List<string>(orderItems.Count);
+            error = null;
+            int cursor = 0;
+
+            for (int i = 0; i < orderItems.Count; i++)
+            {
+                TraceLogOrderFieldSpec item = orderItems[i];
+
+                if (item.FixedWidth is int fixedWidth && fixedWidth > 0)
+                {
+                    if (!TryReadFixedWidthField(line, ref cursor, fixedWidth, out string fixedValue, out error))
+                    {
+                        error = $"Item[{i}] {TraceLogOrderParser.Describe(item)} fixed-width parse failed. {error}";
+                        return false;
+                    }
+
+                    values.Add(fixedValue);
+                    continue;
+                }
+
+                if (IsMem4OrderItem(item))
+                {
+                    if (!TryReadMem4Field(line, ref cursor, out string mem4Value, out error))
+                    {
+                        error = $"Item[{i}] {TraceLogOrderParser.Describe(item)} MEM4 parse failed. {error}";
+                        return false;
+                    }
+
+                    values.Add(mem4Value);
+                    continue;
+                }
+
+                if (!TryReadDelimitedField(line, ref cursor, isTabbed, out string value, out error))
+                {
+                    error = $"Item[{i}] {TraceLogOrderParser.Describe(item)} parse failed. {error}";
+                    return false;
+                }
+
+                values.Add(value);
+            }
+
+            return true;
+        }
+
+        private static bool TryReadFixedWidthField(
+            string line,
+            ref int cursor,
+            int width,
+            out string value,
+            out string? error)
+        {
+            value = string.Empty;
+            error = null;
+
+            if (width <= 0)
+            {
+                error = $"Invalid width {width}.";
+                return false;
+            }
+
+            if (cursor > line.Length)
+            {
+                error = "Cursor is beyond end of line.";
+                return false;
+            }
+
+            if (cursor + width > line.Length)
+            {
+                error = $"Line too short. Need {width} chars at position {cursor}, remaining {line.Length - cursor}.";
+                return false;
+            }
+
+            value = line.Substring(cursor, width).Trim();
+            cursor += width;
+            return true;
+        }
+
+        private static bool TryReadMem4Field(string line, ref int cursor, out string value, out string? error)
+        {
+            value = string.Empty;
+            error = null;
+            List<string> parts = new(4);
+
+            for (int i = 0; i < 4; i++)
+            {
+                if (!TryReadWhitespaceDelimitedToken(line, ref cursor, out string part, out error))
+                {
+                    error = $"MEM4 part {i + 1}/4 missing. {error}";
+                    return false;
+                }
+
+                parts.Add(part);
+            }
+
+            value = string.Join(' ', parts);
+            return true;
+        }
+
+        private static bool TryReadDelimitedField(
+            string line,
+            ref int cursor,
+            bool isTabbed,
+            out string value,
+            out string? error)
+        {
+            if (isTabbed)
+            {
+                return TryReadTabDelimitedToken(line, ref cursor, out value, out error);
+            }
+
+            return TryReadWhitespaceDelimitedToken(line, ref cursor, out value, out error);
+        }
+
+        private static bool TryReadWhitespaceDelimitedToken(
+            string line,
+            ref int cursor,
+            out string value,
+            out string? error)
+        {
+            value = string.Empty;
+            error = null;
+
+            while (cursor < line.Length && char.IsWhiteSpace(line[cursor]))
+            {
+                cursor++;
+            }
+
+            if (cursor >= line.Length)
+            {
+                error = "Reached end of line while expecting a token.";
+                return false;
+            }
+
+            int start = cursor;
+            while (cursor < line.Length && !char.IsWhiteSpace(line[cursor]))
+            {
+                cursor++;
+            }
+
+            value = line.Substring(start, cursor - start).Trim();
+            return true;
+        }
+
+        private static bool TryReadTabDelimitedToken(
+            string line,
+            ref int cursor,
+            out string value,
+            out string? error)
+        {
+            value = string.Empty;
+            error = null;
+
+            // Consume only one column separator. Consecutive tabs represent empty fields.
+            if (cursor < line.Length && line[cursor] == '\t')
+            {
+                cursor++;
+            }
+
+            if (cursor > line.Length)
+            {
+                error = "Reached end of line while expecting a tab-delimited token.";
+                return false;
+            }
+
+            if (cursor == line.Length)
+            {
+                value = string.Empty;
+                return true;
+            }
+
+            int start = cursor;
+            while (cursor < line.Length && line[cursor] != '\t')
+            {
+                cursor++;
+            }
+
+            value = line.Substring(start, cursor - start).Trim();
+            return true;
+        }
+
+        private static bool IsMem4OrderItem(TraceLogOrderFieldSpec item)
+        {
+            if (item.Kind != TraceLogOrderItemKind.Field)
+            {
+                return false;
+            }
+
+            if (item.Field == TraceLogOrderField.OpcodeValue)
+            {
+                return true;
+            }
+
+            return item.NormalizedToken.Equals("MEM4", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private void PopulateRegisterBoxes(LogPaneState pane)
+        {
+            bool isPrimary = ReferenceEquals(pane, _primaryPane);
+            TraceLogData logData = pane.LogData;
+            TraceLogRegisters r = logData.SelectedLine.Registers;
+
+            ushort? af = r.AF ?? ComposePair(r.A, r.F);
+            ushort? bc = r.BC ?? ComposePair(r.B, r.C);
+            ushort? de = r.DE ?? ComposePair(r.D, r.E);
+            ushort? hl = r.HL ?? ComposePair(r.H, r.L);
+
+            if (isPrimary)
+            {
+                SetRegisterTextBox(txtPC1, FormatUInt16(r.PC, logData));
+                SetRegisterTextBox(txtSP1, FormatUInt16(r.SP, logData));
+                SetRegisterTextBox(txtAF1, FormatUInt16(af, logData));
+                SetRegisterTextBox(txtBC1, FormatUInt16(bc, logData));
+                SetRegisterTextBox(txtDE1, FormatUInt16(de, logData));
+                SetRegisterTextBox(txtHL1, FormatUInt16(hl, logData));
+                SetRegisterTextBox(txtIX1, FormatUInt16(r.IX, logData));
+                SetRegisterTextBox(txtIY1, FormatUInt16(r.IY, logData));
+                SetRegisterTextBox(txtIR1, FormatUInt16(r.IR, logData));
+                SetRegisterTextBox(txtIM1, FormatByte(r.IM, logData));
+                SetRegisterTextBox(txtAFPrime1, FormatUInt16(r.AFx, logData));
+                SetRegisterTextBox(txtBCPrime1, FormatUInt16(r.BCx, logData));
+                SetRegisterTextBox(txtDEPrime1, FormatUInt16(r.DEx, logData));
+                SetRegisterTextBox(txtHLPrime1, FormatUInt16(r.HLx, logData));
+                SetRegisterTextBox(txtWZ1, FormatUInt16(r.WZ, logData));
+                SetRegisterTextBox(txtPG1, FormatByte(logData.SelectedLine.Port7FFD, logData));
+            }
+            else
+            {
+                SetRegisterTextBox(txtPC2, FormatUInt16(r.PC, logData));
+                SetRegisterTextBox(txtSP2, FormatUInt16(r.SP, logData));
+                SetRegisterTextBox(txtAF2, FormatUInt16(af, logData));
+                SetRegisterTextBox(txtBC2, FormatUInt16(bc, logData));
+                SetRegisterTextBox(txtDE2, FormatUInt16(de, logData));
+                SetRegisterTextBox(txtHL2, FormatUInt16(hl, logData));
+                SetRegisterTextBox(txtIX2, FormatUInt16(r.IX, logData));
+                SetRegisterTextBox(txtIY2, FormatUInt16(r.IY, logData));
+                SetRegisterTextBox(txtIR2, FormatUInt16(r.IR, logData));
+                SetRegisterTextBox(txtIM2, FormatByte(r.IM, logData));
+                SetRegisterTextBox(txtAFPrime2, FormatUInt16(r.AFx, logData));
+                SetRegisterTextBox(txtBCPrime2, FormatUInt16(r.BCx, logData));
+                SetRegisterTextBox(txtDEPrime2, FormatUInt16(r.DEx, logData));
+                SetRegisterTextBox(txtHLPrime2, FormatUInt16(r.HLx, logData));
+                SetRegisterTextBox(txtWZ2, FormatUInt16(r.WZ, logData));
+                SetRegisterTextBox(txtPG2, FormatByte(logData.SelectedLine.Port7FFD, logData));
+            }
+        }
+
+        private static ushort? ComposePair(byte? high, byte? low)
+        {
+            if (high is null || low is null)
+            {
+                return null;
+            }
+
+            return (ushort)((high.Value << 8) | low.Value);
+        }
+
+        private static void SetRegisterTextBox(TextBox textBox, string text)
+        {
+            textBox.Text = text;
+        }
+
+        private static string FormatUInt16(ushort? value, TraceLogData logData)
+        {
+            if (value is null)
+            {
+                return string.Empty;
+            }
+
+            if (logData.Opts.Hex)
+            {
+                string prefix = logData.Opts.HexPrefix ?? string.Empty;
+                return $"{prefix}{value.Value:X4}";
+            }
+
+            return value.Value.ToString(CultureInfo.InvariantCulture);
+        }
+
+        private static string FormatByte(byte? value, TraceLogData logData)
+        {
+            if (value is null)
+            {
+                return string.Empty;
+            }
+
+            if (logData.Opts.Hex)
+            {
+                string prefix = logData.Opts.HexPrefix ?? string.Empty;
+                return $"{prefix}{value.Value:X2}";
+            }
+
+            return value.Value.ToString(CultureInfo.InvariantCulture);
+        }
+
+        private void ApplyParsedValuesToSelectedLine(
+            LogPaneState pane,
+            IReadOnlyList<TraceLogOrderFieldSpec> orderItems,
+            IReadOnlyList<string> values,
+            StringBuilder debugLog)
+        {
+            RegisterValueParseMode registerParseMode = pane.LogData.Opts.Hex
+                ? RegisterValueParseMode.Hex
+                : RegisterValueParseMode.Decimal;
+
+            bool wroteAnyRegister = false;
+
+            for (int i = 0; i < orderItems.Count; i++)
+            {
+                TraceLogOrderFieldSpec item = orderItems[i];
+                string rawValue = values[i];
+
+                if (item.Kind == TraceLogOrderItemKind.FormatDirective &&
+                    item.FormatTarget == TraceLogOrderFormatTarget.Registers)
+                {
+                    registerParseMode = item.ValueFormat switch
+                    {
+                        TraceLogOrderValueFormat.Hex => RegisterValueParseMode.Hex,
+                        TraceLogOrderValueFormat.Decimal => RegisterValueParseMode.Decimal,
+                        _ => registerParseMode
+                    };
+
+                    continue;
+                }
+
+                if (item.Kind != TraceLogOrderItemKind.Register)
+                {
+                    continue;
+                }
+
+                if (TryAssignRegisterFromString(
+                    pane.LogData.SelectedLine.Registers,
+                    item.Field,
+                    rawValue,
+                    registerParseMode,
+                    pane.LogData.Opts.HexPrefix,
+                    out string? error))
+                {
+                    wroteAnyRegister = true;
+                    continue;
+                }
+
+                debugLog.AppendLine($"  ERR [{i:00}] {TraceLogOrderParser.Describe(item)} <= \"{rawValue}\" :: {error}");
+            }
+
+            if (wroteAnyRegister)
+            {
+                debugLog.AppendLine("Registers: parsed values applied to SelectedLine.Registers");
+            }
+        }
+
+        private static bool TryAssignRegisterFromString(
+            TraceLogRegisters registers,
+            TraceLogOrderField field,
+            string rawValue,
+            RegisterValueParseMode parseMode,
+            string? hexPrefix,
+            out string? error)
+        {
+            error = null;
+
+            if (!TryParseIntegerText(rawValue, parseMode, hexPrefix, out ulong numericValue, out error))
+            {
+                SetRegisterFieldNull(registers, field);
+                return false;
+            }
+
+            switch (field)
+            {
+                // 8-bit
+                case TraceLogOrderField.A:
+                    return TryAssignByte(v => registers.A = v, () => registers.A = null, numericValue, out error);
+                case TraceLogOrderField.F:
+                    return TryAssignByte(v => registers.F = v, () => registers.F = null, numericValue, out error);
+                case TraceLogOrderField.B:
+                    return TryAssignByte(v => registers.B = v, () => registers.B = null, numericValue, out error);
+                case TraceLogOrderField.C:
+                    return TryAssignByte(v => registers.C = v, () => registers.C = null, numericValue, out error);
+                case TraceLogOrderField.D:
+                    return TryAssignByte(v => registers.D = v, () => registers.D = null, numericValue, out error);
+                case TraceLogOrderField.E:
+                    return TryAssignByte(v => registers.E = v, () => registers.E = null, numericValue, out error);
+                case TraceLogOrderField.H:
+                    return TryAssignByte(v => registers.H = v, () => registers.H = null, numericValue, out error);
+                case TraceLogOrderField.L:
+                    return TryAssignByte(v => registers.L = v, () => registers.L = null, numericValue, out error);
+                case TraceLogOrderField.IM:
+                    return TryAssignByte(v => registers.IM = v, () => registers.IM = null, numericValue, out error);
+
+                // 16-bit
+                case TraceLogOrderField.PC:
+                    return TryAssignUShort(v => registers.PC = v, () => registers.PC = null, numericValue, out error);
+                case TraceLogOrderField.SP:
+                    return TryAssignUShort(v => registers.SP = v, () => registers.SP = null, numericValue, out error);
+                case TraceLogOrderField.AF:
+                    return TryAssignUShort(v => registers.AF = v, () => registers.AF = null, numericValue, out error);
+                case TraceLogOrderField.BC:
+                    return TryAssignUShort(v => registers.BC = v, () => registers.BC = null, numericValue, out error);
+                case TraceLogOrderField.DE:
+                    return TryAssignUShort(v => registers.DE = v, () => registers.DE = null, numericValue, out error);
+                case TraceLogOrderField.HL:
+                    return TryAssignUShort(v => registers.HL = v, () => registers.HL = null, numericValue, out error);
+                case TraceLogOrderField.IX:
+                    return TryAssignUShort(v => registers.IX = v, () => registers.IX = null, numericValue, out error);
+                case TraceLogOrderField.IY:
+                    return TryAssignUShort(v => registers.IY = v, () => registers.IY = null, numericValue, out error);
+                case TraceLogOrderField.IR:
+                    return TryAssignUShort(v => registers.IR = v, () => registers.IR = null, numericValue, out error);
+                case TraceLogOrderField.AFx:
+                    return TryAssignUShort(v => registers.AFx = v, () => registers.AFx = null, numericValue, out error);
+                case TraceLogOrderField.BCx:
+                    return TryAssignUShort(v => registers.BCx = v, () => registers.BCx = null, numericValue, out error);
+                case TraceLogOrderField.DEx:
+                    return TryAssignUShort(v => registers.DEx = v, () => registers.DEx = null, numericValue, out error);
+                case TraceLogOrderField.HLx:
+                    return TryAssignUShort(v => registers.HLx = v, () => registers.HLx = null, numericValue, out error);
+                case TraceLogOrderField.WZ:
+                    return TryAssignUShort(v => registers.WZ = v, () => registers.WZ = null, numericValue, out error);
+
+                // Bool-like registers
+                case TraceLogOrderField.IFF1:
+                    return TryAssignBool(v => registers.IFF1 = v, () => registers.IFF1 = null, numericValue, out error);
+                case TraceLogOrderField.IFF2:
+                    return TryAssignBool(v => registers.IFF2 = v, () => registers.IFF2 = null, numericValue, out error);
+
+                default:
+                    error = $"Register field '{field}' is not supported by register assignment.";
+                    return false;
+            }
+        }
+
+        private static bool TryParseIntegerText(
+            string rawValue,
+            RegisterValueParseMode parseMode,
+            string? hexPrefix,
+            out ulong value,
+            out string? error)
+        {
+            value = 0;
+            error = null;
+
+            string text = rawValue.Trim();
+            if (text.Length == 0)
+            {
+                error = "Empty value.";
+                return false;
+            }
+
+            if (parseMode == RegisterValueParseMode.Hex)
+            {
+                string normalized = text;
+
+                if (!string.IsNullOrEmpty(hexPrefix) &&
+                    normalized.StartsWith(hexPrefix, StringComparison.OrdinalIgnoreCase))
+                {
+                    normalized = normalized[hexPrefix.Length..].Trim();
+                }
+
+                if (normalized.Length == 0)
+                {
+                    error = "Hex value is empty after prefix removal.";
+                    return false;
+                }
+
+                if (!ulong.TryParse(normalized, NumberStyles.AllowHexSpecifier, CultureInfo.InvariantCulture, out value))
+                {
+                    error = $"Invalid hex value '{rawValue}'.";
+                    return false;
+                }
+
+                return true;
+            }
+
+            if (!ulong.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out value))
+            {
+                error = $"Invalid decimal value '{rawValue}'.";
+                return false;
+            }
+
+            return true;
+        }
+
+        private static bool TryAssignByte(Action<byte> assign, Action clear, ulong value, out string? error)
+        {
+            if (value > byte.MaxValue)
+            {
+                clear();
+                error = $"Value out of range for byte: {value}.";
+                return false;
+            }
+
+            assign((byte)value);
+            error = null;
+            return true;
+        }
+
+        private static bool TryAssignUShort(Action<ushort> assign, Action clear, ulong value, out string? error)
+        {
+            if (value > ushort.MaxValue)
+            {
+                clear();
+                error = $"Value out of range for ushort: {value}.";
+                return false;
+            }
+
+            assign((ushort)value);
+            error = null;
+            return true;
+        }
+
+        private static bool TryAssignBool(Action<bool> assign, Action clear, ulong value, out string? error)
+        {
+            if (value > 1)
+            {
+                clear();
+                error = $"Value out of range for bool register (expected 0 or 1): {value}.";
+                return false;
+            }
+
+            assign(value != 0);
+            error = null;
+            return true;
+        }
+
+        private static void SetRegisterFieldNull(TraceLogRegisters registers, TraceLogOrderField field)
+        {
+            switch (field)
+            {
+                case TraceLogOrderField.A: registers.A = null; break;
+                case TraceLogOrderField.F: registers.F = null; break;
+                case TraceLogOrderField.B: registers.B = null; break;
+                case TraceLogOrderField.C: registers.C = null; break;
+                case TraceLogOrderField.D: registers.D = null; break;
+                case TraceLogOrderField.E: registers.E = null; break;
+                case TraceLogOrderField.H: registers.H = null; break;
+                case TraceLogOrderField.L: registers.L = null; break;
+                case TraceLogOrderField.IM: registers.IM = null; break;
+
+                case TraceLogOrderField.PC: registers.PC = null; break;
+                case TraceLogOrderField.SP: registers.SP = null; break;
+                case TraceLogOrderField.AF: registers.AF = null; break;
+                case TraceLogOrderField.BC: registers.BC = null; break;
+                case TraceLogOrderField.DE: registers.DE = null; break;
+                case TraceLogOrderField.HL: registers.HL = null; break;
+                case TraceLogOrderField.IX: registers.IX = null; break;
+                case TraceLogOrderField.IY: registers.IY = null; break;
+                case TraceLogOrderField.IR: registers.IR = null; break;
+                case TraceLogOrderField.AFx: registers.AFx = null; break;
+                case TraceLogOrderField.BCx: registers.BCx = null; break;
+                case TraceLogOrderField.DEx: registers.DEx = null; break;
+                case TraceLogOrderField.HLx: registers.HLx = null; break;
+                case TraceLogOrderField.WZ: registers.WZ = null; break;
+
+                case TraceLogOrderField.IFF1: registers.IFF1 = null; break;
+                case TraceLogOrderField.IFF2: registers.IFF2 = null; break;
+            }
+        }
+
+        private enum RegisterValueParseMode
+        {
+            Decimal = 0,
+            Hex
+        }
+
+        private static TControl? FindControlRecursive<TControl>(Control root, string name)
+            where TControl : Control
+        {
+            foreach (Control child in root.Controls)
+            {
+                if (child is TControl typed &&
+                    string.Equals(child.Name, name, StringComparison.Ordinal))
+                {
+                    return typed;
+                }
+
+                if (FindControlRecursive<TControl>(child, name) is { } nested)
+                {
+                    return nested;
+                }
+            }
+
+            return null;
         }
 
         private static void TryPopulateTemplateData(TraceLogData logData, string firstLine)
@@ -268,6 +1025,11 @@ namespace ZXTL
 
         private void ReportLogDetails(TraceLogData logData)
         {
+            if (!IsVerboseDebugEnabled())
+            {
+                return;
+            }
+
             StringBuilder sb = new();
 
             string sourceName = ReferenceEquals(logData, PrimaryLog)
@@ -291,6 +1053,14 @@ namespace ZXTL
                 sb.AppendLine($"Emulator: {header.EmulatorName}");
                 sb.AppendLine($"Order: {header.Order}");
                 sb.AppendLine($"Options: {header.Options}");
+                sb.AppendLine($"Order.Items: {logData.OrderDefinition.Items.Count}");
+
+                for (int i = 0; i < logData.OrderDefinition.Items.Count; i++)
+                {
+                    TraceLogOrderFieldSpec item = logData.OrderDefinition.Items[i];
+                    sb.AppendLine($"  [{i:00}] {TraceLogOrderParser.Describe(item)}");
+                }
+
                 sb.AppendLine($"Opts.Model: {logData.Opts.Model}");
                 sb.AppendLine($"Opts.Slice: {logData.Opts.Slice}");
                 sb.AppendLine($"Opts.ViewMem: {logData.Opts.ViewMem}");
@@ -300,7 +1070,22 @@ namespace ZXTL
             }
 
             sb.AppendLine();
-            txtLog.AppendText(sb.ToString());
+            AppendVerboseLog(sb.ToString());
+        }
+
+        private bool IsVerboseDebugEnabled()
+        {
+            return chkVerboseDebug.Checked;
+        }
+
+        private void AppendVerboseLog(string text)
+        {
+            if (!IsVerboseDebugEnabled())
+            {
+                return;
+            }
+
+            txtLog.AppendText(text);
         }
 
         private sealed class TraceLogData
@@ -309,6 +1094,7 @@ namespace ZXTL
             public TraceLogOptions Opts { get; private set; } = new();
             public TraceLogOrderDefinition OrderDefinition { get; } = new();
             public TraceLogLineData SelectedLine { get; } = new();
+            public string? HeaderLine { get; set; }
             public bool HasTemplateHeader => TemplateHeader is not null;
 
             public void Reset()
@@ -317,13 +1103,14 @@ namespace ZXTL
                 Opts = new TraceLogOptions();
                 OrderDefinition.Clear();
                 SelectedLine.Clear();
+                HeaderLine = null;
             }
 
             public void SetTemplateHeader(TraceLogTemplateHeader header)
             {
                 TemplateHeader = header;
                 Opts = TraceLogOptionsParser.ParseDefineLine(header.Options);
-                OrderDefinition.RawText = header.Order;
+                TraceLogOrderParser.ParseInto(OrderDefinition, header.Order);
             }
         }
 
@@ -342,6 +1129,8 @@ namespace ZXTL
             public string BaseTitle { get; private set; } = string.Empty;
             public TraceLogDocument? Document { get; set; }
             public TraceLogData LogData { get; } = new();
+            public List<string> PreviewLines { get; } = new();
+            public CheckBox? HeaderVisibilityCheckBox { get; set; }
             public int VisibleStartLine { get; set; }
             public int LoadVersion { get; set; }
 

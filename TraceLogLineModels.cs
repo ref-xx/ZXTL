@@ -19,6 +19,9 @@ namespace ZXTL
     {
         Unknown = 0,
 
+        // Non-register trace columns
+        Address,
+
         // Registers / flags
         PC,
         SP,
@@ -59,22 +62,51 @@ namespace ZXTL
         Event
     }
 
+    public enum TraceLogOrderItemKind
+    {
+        Unknown = 0,
+        Field,
+        Register,
+        FormatDirective
+    }
+
+    public enum TraceLogOrderFormatTarget
+    {
+        None = 0,
+        Registers,   // R=...
+        DollarValue  // $=...
+    }
+
+    public enum TraceLogOrderValueFormat
+    {
+        None = 0,
+        Hex,     // H
+        Decimal, // D
+        String   // S
+    }
+
     public sealed class TraceLogOrderDefinition
     {
         public string RawText { get; set; } = string.Empty;
-        public List<TraceLogOrderFieldSpec> Fields { get; } = new();
+        public List<TraceLogOrderFieldSpec> Items { get; } = new();
 
         public void Clear()
         {
             RawText = string.Empty;
-            Fields.Clear();
+            Items.Clear();
         }
     }
 
     public sealed class TraceLogOrderFieldSpec
     {
+        public TraceLogOrderItemKind Kind { get; set; } = TraceLogOrderItemKind.Unknown;
         public TraceLogOrderField Field { get; set; } = TraceLogOrderField.Unknown;
+        public TraceLogOrderFormatTarget FormatTarget { get; set; } = TraceLogOrderFormatTarget.None;
+        public TraceLogOrderValueFormat ValueFormat { get; set; } = TraceLogOrderValueFormat.None;
         public string RawToken { get; set; } = string.Empty;
+        public string NormalizedToken { get; set; } = string.Empty;
+        public int? FixedWidth { get; set; }
+        public string? ExpandedFromToken { get; set; }
     }
 
     public sealed class TraceLogLineData

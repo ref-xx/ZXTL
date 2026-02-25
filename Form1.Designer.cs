@@ -78,7 +78,7 @@
             lblAF1 = new Label();
             txtPC1 = new TextBox();
             lblPC1 = new Label();
-            checkBox9 = new CheckBox();
+            chkPrimaryHeader = new CheckBox();
             menuStrip1 = new MenuStrip();
             fileToolStripMenuItem = new ToolStripMenuItem();
             openPrimaryLogToolStripMenuItem = new ToolStripMenuItem();
@@ -138,8 +138,9 @@
             lblAF2 = new Label();
             txtPC2 = new TextBox();
             lblPC2 = new Label();
-            checkBox18 = new CheckBox();
+            chkSecondaryHeader = new CheckBox();
             GroupUtilities = new GroupBox();
+            chkVerboseDebug = new CheckBox();
             txtLog = new TextBox();
             groupBoxPrimary.SuspendLayout();
             GroupFlagsPrimary.SuspendLayout();
@@ -193,7 +194,7 @@
             groupBoxPrimary.Controls.Add(lblAF1);
             groupBoxPrimary.Controls.Add(txtPC1);
             groupBoxPrimary.Controls.Add(lblPC1);
-            groupBoxPrimary.Controls.Add(checkBox9);
+            groupBoxPrimary.Controls.Add(chkPrimaryHeader);
             groupBoxPrimary.Location = new Point(12, 27);
             groupBoxPrimary.Name = "groupBoxPrimary";
             groupBoxPrimary.Size = new Size(1069, 317);
@@ -205,7 +206,7 @@
             // 
             txtCurrentLine.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
             txtCurrentLine.Font = new Font("JetBrains Mono", 8.999999F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            txtCurrentLine.Location = new Point(496, 282);
+            txtCurrentLine.Location = new Point(624, 282);
             txtCurrentLine.Name = "txtCurrentLine";
             txtCurrentLine.Size = new Size(44, 23);
             txtCurrentLine.TabIndex = 43;
@@ -215,7 +216,7 @@
             // 
             label1.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
             label1.AutoSize = true;
-            label1.Location = new Point(455, 286);
+            label1.Location = new Point(583, 286);
             label1.Name = "label1";
             label1.Size = new Size(35, 16);
             label1.TabIndex = 42;
@@ -239,7 +240,7 @@
             btnNextMis.Name = "btnNextMis";
             btnNextMis.Size = new Size(103, 23);
             btnNextMis.TabIndex = 40;
-            btnNextMis.Text = "Mismatch >";
+            btnNextMis.Text = "Next >";
             btnNextMis.UseVisualStyleBackColor = true;
             // 
             // btnPrevMis
@@ -249,7 +250,7 @@
             btnPrevMis.Name = "btnPrevMis";
             btnPrevMis.Size = new Size(103, 23);
             btnPrevMis.TabIndex = 39;
-            btnPrevMis.Text = "< Mismatch";
+            btnPrevMis.Text = "< Prev";
             btnPrevMis.UseVisualStyleBackColor = true;
             // 
             // btnPrevLine
@@ -674,16 +675,16 @@
             lblPC1.TabIndex = 0;
             lblPC1.Text = "PC";
             // 
-            // checkBox9
+            // chkPrimaryHeader
             // 
-            checkBox9.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
-            checkBox9.AutoSize = true;
-            checkBox9.Location = new Point(558, 284);
-            checkBox9.Name = "checkBox9";
-            checkBox9.Size = new Size(110, 20);
-            checkBox9.TabIndex = 38;
-            checkBox9.Text = "Control Both";
-            checkBox9.UseVisualStyleBackColor = true;
+            chkPrimaryHeader.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
+            chkPrimaryHeader.AutoSize = true;
+            chkPrimaryHeader.Location = new Point(195, 256);
+            chkPrimaryHeader.Name = "chkPrimaryHeader";
+            chkPrimaryHeader.Size = new Size(103, 20);
+            chkPrimaryHeader.TabIndex = 38;
+            chkPrimaryHeader.Text = "Hide Header";
+            chkPrimaryHeader.UseVisualStyleBackColor = true;
             // 
             // menuStrip1
             // 
@@ -809,7 +810,7 @@
             groupBoxSecondary.Controls.Add(lblAF2);
             groupBoxSecondary.Controls.Add(txtPC2);
             groupBoxSecondary.Controls.Add(lblPC2);
-            groupBoxSecondary.Controls.Add(checkBox18);
+            groupBoxSecondary.Controls.Add(chkSecondaryHeader);
             groupBoxSecondary.Location = new Point(12, 351);
             groupBoxSecondary.Name = "groupBoxSecondary";
             groupBoxSecondary.Size = new Size(1069, 306);
@@ -1259,20 +1260,21 @@
             lblPC2.TabIndex = 0;
             lblPC2.Text = "PC";
             // 
-            // checkBox18
+            // chkSecondaryHeader
             // 
-            checkBox18.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
-            checkBox18.AutoSize = true;
-            checkBox18.Location = new Point(558, 274);
-            checkBox18.Name = "checkBox18";
-            checkBox18.Size = new Size(110, 20);
-            checkBox18.TabIndex = 38;
-            checkBox18.Text = "Control Both";
-            checkBox18.UseVisualStyleBackColor = true;
+            chkSecondaryHeader.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
+            chkSecondaryHeader.AutoSize = true;
+            chkSecondaryHeader.Location = new Point(195, 256);
+            chkSecondaryHeader.Name = "chkSecondaryHeader";
+            chkSecondaryHeader.Size = new Size(103, 20);
+            chkSecondaryHeader.TabIndex = 38;
+            chkSecondaryHeader.Text = "Hide Header";
+            chkSecondaryHeader.UseVisualStyleBackColor = true;
             // 
             // GroupUtilities
             // 
             GroupUtilities.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Right;
+            GroupUtilities.Controls.Add(chkVerboseDebug);
             GroupUtilities.Controls.Add(txtLog);
             GroupUtilities.Location = new Point(1087, 30);
             GroupUtilities.Name = "GroupUtilities";
@@ -1280,6 +1282,18 @@
             GroupUtilities.TabIndex = 3;
             GroupUtilities.TabStop = false;
             GroupUtilities.Text = "Utilities";
+            // 
+            // chkVerboseDebug
+            // 
+            chkVerboseDebug.AutoSize = true;
+            chkVerboseDebug.Checked = true;
+            chkVerboseDebug.CheckState = CheckState.Checked;
+            chkVerboseDebug.Location = new Point(6, 355);
+            chkVerboseDebug.Name = "chkVerboseDebug";
+            chkVerboseDebug.Size = new Size(75, 20);
+            chkVerboseDebug.TabIndex = 1;
+            chkVerboseDebug.Text = "Verbose";
+            chkVerboseDebug.UseVisualStyleBackColor = true;
             // 
             // txtLog
             // 
@@ -1369,7 +1383,7 @@
         private Button btnNextMis;
         private Button btnPrevMis;
         private Button btnPrevLine;
-        private CheckBox checkBox9;
+        private CheckBox chkPrimaryHeader;
         private MenuStrip menuStrip1;
         private ToolStripMenuItem fileToolStripMenuItem;
         private ToolStripMenuItem openPrimaryLogToolStripMenuItem;
@@ -1429,12 +1443,13 @@
         private Label lblAF2;
         private TextBox txtPC2;
         private Label lblPC2;
-        private CheckBox checkBox18;
+        private CheckBox chkSecondaryHeader;
         private Splitter splitter1;
         private TextBox txtCurrentLine;
         private Label label1;
         private GroupBox GroupUtilities;
         private TextBox txtLog;
+        private CheckBox chkVerboseDebug;
     }
 }
 
