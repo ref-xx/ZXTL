@@ -307,18 +307,23 @@ namespace ZXTL
         {
             public TraceLogTemplateHeader? TemplateHeader { get; private set; }
             public TraceLogOptions Opts { get; private set; } = new();
+            public TraceLogOrderDefinition OrderDefinition { get; } = new();
+            public TraceLogLineData SelectedLine { get; } = new();
             public bool HasTemplateHeader => TemplateHeader is not null;
 
             public void Reset()
             {
                 TemplateHeader = null;
                 Opts = new TraceLogOptions();
+                OrderDefinition.Clear();
+                SelectedLine.Clear();
             }
 
             public void SetTemplateHeader(TraceLogTemplateHeader header)
             {
                 TemplateHeader = header;
                 Opts = TraceLogOptionsParser.ParseDefineLine(header.Options);
+                OrderDefinition.RawText = header.Order;
             }
         }
 
