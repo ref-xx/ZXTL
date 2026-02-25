@@ -6,6 +6,8 @@ namespace ZXTL
     {
         private readonly LogPaneState _primaryPane = new();
         private readonly LogPaneState _secondaryPane = new();
+        private TraceLogData PrimaryLog => _primaryPane.LogData;
+        private TraceLogData SecondaryLog => _secondaryPane.LogData;
 
         public Form1()
         {
@@ -57,6 +59,7 @@ namespace ZXTL
             pane.Document?.Dispose();
             pane.Document = null;
             pane.VisibleStartLine = 0;
+            pane.LogData.Reset();
 
             TraceLogDocument document = new(filePath);
             pane.Document = document;
@@ -80,6 +83,12 @@ namespace ZXTL
                     return;
                 }
 
+                if (previewLines.Count > 0)
+                {
+                    TryPopulateTemplateData(pane.LogData, previewLines[0]);
+                }
+
+                ReportLogDetails(pane.LogData);
                 SetListBoxItems(pane.ListBox, previewLines);
                 document.StartBackgroundIndexing();
             }
@@ -88,6 +97,7 @@ namespace ZXTL
                 if (ReferenceEquals(pane.Document, document))
                 {
                     pane.Document = null;
+                    pane.LogData.Reset();
                     pane.GroupBox.Text = pane.BaseTitle;
                     SetListBoxItems(pane.ListBox, new[] { "Load canceled." });
                 }
@@ -97,6 +107,7 @@ namespace ZXTL
                 if (ReferenceEquals(pane.Document, document))
                 {
                     pane.Document = null;
+                    pane.LogData.Reset();
                     pane.GroupBox.Text = pane.BaseTitle;
                     SetListBoxItems(pane.ListBox, new[] { "Failed to open log." });
                 }
@@ -157,9 +168,166 @@ namespace ZXTL
             return $"{value:0.##} {units[unitIndex]}";
         }
 
+        private static void TryPopulateTemplateData(TraceLogData logData, string firstLine)
+        {
+            logData.Reset();
+
+            if (!TrySplitCsv(firstLine, out IReadOnlyList<string> fields) || fields.Count != 4)
+            {
+                return;
+            }
+
+            if (!StartsWithZxtlWord(fields[0]))
+            {
+                return;
+            }
+
+            TraceLogTemplateHeader header = new()
+            {
+                SignatureAndVersion = fields[0],
+                EmulatorName = fields[1],
+                Order = fields[2],
+                Options = fields[3]
+            };
+
+            logData.SetTemplateHeader(header);
+        }
+
+        private static bool StartsWithZxtlWord(string value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return false;
+            }
+
+            ReadOnlySpan<char> span = value.AsSpan().TrimStart();
+
+            while (!span.IsEmpty && (span[0] == '\uFEFF' || span[0] == '"' || span[0] == '\''))
+            {
+                span = span[1..];
+            }
+
+            int length = 0;
+
+            while (length < span.Length && !char.IsWhiteSpace(span[length]) && span[length] != ',')
+            {
+                length++;
+            }
+
+            return length == 4 && span[..length].Equals("ZXTL".AsSpan(), StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool TrySplitCsv(string line, out IReadOnlyList<string> fields)
+        {
+            List<string> result = new(4);
+            StringBuilder current = new();
+            bool inQuotes = false;
+
+            for (int i = 0; i < line.Length; i++)
+            {
+                char c = line[i];
+
+                if (c == '"')
+                {
+                    if (inQuotes && i + 1 < line.Length && line[i + 1] == '"')
+                    {
+                        current.Append('"');
+                        i++;
+                        continue;
+                    }
+
+                    inQuotes = !inQuotes;
+                    continue;
+                }
+
+                if (!inQuotes && c == ',')
+                {
+                    result.Add(current.ToString().Trim());
+                    current.Clear();
+                    continue;
+                }
+
+                current.Append(c);
+            }
+
+            if (inQuotes)
+            {
+                fields = Array.Empty<string>();
+                return false;
+            }
+
+            result.Add(current.ToString().Trim());
+            fields = result;
+            return true;
+        }
+
         private void exitToolStripMenuItem_Click(object sender, EventArgs e)
         {
             Close();
+        }
+
+        private void ReportLogDetails(TraceLogData logData)
+        {
+            StringBuilder sb = new();
+
+            string sourceName = ReferenceEquals(logData, PrimaryLog)
+                ? "PrimaryLog"
+                : ReferenceEquals(logData, SecondaryLog)
+                    ? "SecondaryLog"
+                    : "TraceLog";
+
+            sb.AppendLine($"[{DateTime.Now:HH:mm:ss}] {sourceName}");
+
+            if (!logData.HasTemplateHeader || logData.TemplateHeader is null)
+            {
+                sb.AppendLine("Template: none (first line does not start with ZXTL)");
+            }
+            else
+            {
+                TraceLogTemplateHeader header = logData.TemplateHeader;
+
+                sb.AppendLine("Template: ZXTL");
+                sb.AppendLine($"Version: {header.SignatureAndVersion}");
+                sb.AppendLine($"Emulator: {header.EmulatorName}");
+                sb.AppendLine($"Order: {header.Order}");
+                sb.AppendLine($"Options: {header.Options}");
+                sb.AppendLine($"Opts.Model: {logData.Opts.Model}");
+                sb.AppendLine($"Opts.Slice: {logData.Opts.Slice}");
+                sb.AppendLine($"Opts.ViewMem: {logData.Opts.ViewMem}");
+                sb.AppendLine($"Opts.Hex: {logData.Opts.Hex}");
+                sb.AppendLine($"Opts.HexPrefix: {(string.IsNullOrEmpty(logData.Opts.HexPrefix) ? "None" : logData.Opts.HexPrefix)}");
+                sb.AppendLine($"Opts.SnapshotFile: {logData.Opts.SnapshotFile ?? "(null)"}");
+            }
+
+            sb.AppendLine();
+            txtLog.AppendText(sb.ToString());
+        }
+
+        private sealed class TraceLogData
+        {
+            public TraceLogTemplateHeader? TemplateHeader { get; private set; }
+            public TraceLogOptions Opts { get; private set; } = new();
+            public bool HasTemplateHeader => TemplateHeader is not null;
+
+            public void Reset()
+            {
+                TemplateHeader = null;
+                Opts = new TraceLogOptions();
+            }
+
+            public void SetTemplateHeader(TraceLogTemplateHeader header)
+            {
+                TemplateHeader = header;
+                Opts = TraceLogOptionsParser.ParseDefineLine(header.Options);
+            }
+        }
+
+        private sealed class TraceLogTemplateHeader
+        {
+            public string SignatureAndVersion { get; init; } = string.Empty;
+            public string EmulatorName { get; init; } = string.Empty;
+            public string Order { get; init; } = string.Empty;
+            public string Options { get; init; } = string.Empty;
         }
 
         private sealed class LogPaneState
@@ -168,6 +336,7 @@ namespace ZXTL
             public ListBox ListBox { get; private set; } = null!;
             public string BaseTitle { get; private set; } = string.Empty;
             public TraceLogDocument? Document { get; set; }
+            public TraceLogData LogData { get; } = new();
             public int VisibleStartLine { get; set; }
             public int LoadVersion { get; set; }
 

@@ -42,8 +42,8 @@ namespace ZXTL
         public bool ViewMem => Flags.Contains(TraceLogOptionKeyword.VIEWMEM);
 
         // Parameter defaults
-        public string HexPrefix =>
-            GetParamOrDefault(TraceLogOptionKeys.PREFIXED, "");   // default: no prefix
+        public string? HexPrefix =>
+            GetParamOrDefaultNullable(TraceLogOptionKeys.PREFIXED); // default: not provided
 
         public string Model =>
             GetParamOrDefault(TraceLogOptionKeys.M, "48");        // example default: 48

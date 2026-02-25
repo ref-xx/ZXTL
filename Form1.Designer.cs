@@ -29,6 +29,8 @@
         private void InitializeComponent()
         {
             groupBoxPrimary = new GroupBox();
+            txtCurrentLine = new TextBox();
+            label1 = new Label();
             splitter1 = new Splitter();
             btnNextMis = new Button();
             btnPrevMis = new Button();
@@ -137,16 +139,21 @@
             txtPC2 = new TextBox();
             lblPC2 = new Label();
             checkBox18 = new CheckBox();
+            GroupUtilities = new GroupBox();
+            txtLog = new TextBox();
             groupBoxPrimary.SuspendLayout();
             GroupFlagsPrimary.SuspendLayout();
             menuStrip1.SuspendLayout();
             groupBoxSecondary.SuspendLayout();
             GroupFlagsSecondary.SuspendLayout();
+            GroupUtilities.SuspendLayout();
             SuspendLayout();
             // 
             // groupBoxPrimary
             // 
             groupBoxPrimary.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
+            groupBoxPrimary.Controls.Add(txtCurrentLine);
+            groupBoxPrimary.Controls.Add(label1);
             groupBoxPrimary.Controls.Add(splitter1);
             groupBoxPrimary.Controls.Add(btnNextMis);
             groupBoxPrimary.Controls.Add(btnPrevMis);
@@ -189,10 +196,30 @@
             groupBoxPrimary.Controls.Add(checkBox9);
             groupBoxPrimary.Location = new Point(12, 27);
             groupBoxPrimary.Name = "groupBoxPrimary";
-            groupBoxPrimary.Size = new Size(1270, 317);
+            groupBoxPrimary.Size = new Size(1069, 317);
             groupBoxPrimary.TabIndex = 0;
             groupBoxPrimary.TabStop = false;
             groupBoxPrimary.Text = "Primary Log";
+            // 
+            // txtCurrentLine
+            // 
+            txtCurrentLine.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
+            txtCurrentLine.Font = new Font("JetBrains Mono", 8.999999F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            txtCurrentLine.Location = new Point(496, 282);
+            txtCurrentLine.Name = "txtCurrentLine";
+            txtCurrentLine.Size = new Size(44, 23);
+            txtCurrentLine.TabIndex = 43;
+            txtCurrentLine.Text = "1";
+            // 
+            // label1
+            // 
+            label1.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
+            label1.AutoSize = true;
+            label1.Location = new Point(455, 286);
+            label1.Name = "label1";
+            label1.Size = new Size(35, 16);
+            label1.TabIndex = 42;
+            label1.Text = "Line";
             // 
             // splitter1
             // 
@@ -201,14 +228,14 @@
             splitter1.Dock = DockStyle.Bottom;
             splitter1.Location = new Point(3, 311);
             splitter1.Name = "splitter1";
-            splitter1.Size = new Size(1264, 3);
+            splitter1.Size = new Size(1063, 3);
             splitter1.TabIndex = 41;
             splitter1.TabStop = false;
             // 
             // btnNextMis
             // 
             btnNextMis.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
-            btnNextMis.Location = new Point(984, 282);
+            btnNextMis.Location = new Point(783, 282);
             btnNextMis.Name = "btnNextMis";
             btnNextMis.Size = new Size(103, 23);
             btnNextMis.TabIndex = 40;
@@ -218,7 +245,7 @@
             // btnPrevMis
             // 
             btnPrevMis.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
-            btnPrevMis.Location = new Point(875, 282);
+            btnPrevMis.Location = new Point(674, 282);
             btnPrevMis.Name = "btnPrevMis";
             btnPrevMis.Size = new Size(103, 23);
             btnPrevMis.TabIndex = 39;
@@ -228,7 +255,7 @@
             // btnPrevLine
             // 
             btnPrevLine.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
-            btnPrevLine.Location = new Point(1105, 282);
+            btnPrevLine.Location = new Point(904, 282);
             btnPrevLine.Name = "btnPrevLine";
             btnPrevLine.Size = new Size(75, 23);
             btnPrevLine.TabIndex = 37;
@@ -238,7 +265,7 @@
             // btnNextLine
             // 
             btnNextLine.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
-            btnNextLine.Location = new Point(1186, 282);
+            btnNextLine.Location = new Point(985, 282);
             btnNextLine.Name = "btnNextLine";
             btnNextLine.Size = new Size(75, 23);
             btnNextLine.TabIndex = 36;
@@ -251,7 +278,7 @@
             listBox1.FormattingEnabled = true;
             listBox1.Location = new Point(195, 22);
             listBox1.Name = "listBox1";
-            listBox1.Size = new Size(1066, 228);
+            listBox1.Size = new Size(865, 228);
             listBox1.TabIndex = 35;
             // 
             // GroupFlagsPrimary
@@ -651,7 +678,7 @@
             // 
             checkBox9.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
             checkBox9.AutoSize = true;
-            checkBox9.Location = new Point(759, 284);
+            checkBox9.Location = new Point(558, 284);
             checkBox9.Name = "checkBox9";
             checkBox9.Size = new Size(110, 20);
             checkBox9.TabIndex = 38;
@@ -785,7 +812,7 @@
             groupBoxSecondary.Controls.Add(checkBox18);
             groupBoxSecondary.Location = new Point(12, 351);
             groupBoxSecondary.Name = "groupBoxSecondary";
-            groupBoxSecondary.Size = new Size(1270, 306);
+            groupBoxSecondary.Size = new Size(1069, 306);
             groupBoxSecondary.TabIndex = 2;
             groupBoxSecondary.TabStop = false;
             groupBoxSecondary.Text = "Secondary Log";
@@ -793,7 +820,7 @@
             // btnNextMis2
             // 
             btnNextMis2.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
-            btnNextMis2.Location = new Point(984, 271);
+            btnNextMis2.Location = new Point(783, 271);
             btnNextMis2.Name = "btnNextMis2";
             btnNextMis2.Size = new Size(103, 23);
             btnNextMis2.TabIndex = 40;
@@ -803,7 +830,7 @@
             // btnPrevMis2
             // 
             btnPrevMis2.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
-            btnPrevMis2.Location = new Point(875, 271);
+            btnPrevMis2.Location = new Point(674, 271);
             btnPrevMis2.Name = "btnPrevMis2";
             btnPrevMis2.Size = new Size(103, 23);
             btnPrevMis2.TabIndex = 39;
@@ -813,7 +840,7 @@
             // btnPrevline2
             // 
             btnPrevline2.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
-            btnPrevline2.Location = new Point(1105, 271);
+            btnPrevline2.Location = new Point(904, 271);
             btnPrevline2.Name = "btnPrevline2";
             btnPrevline2.Size = new Size(75, 23);
             btnPrevline2.TabIndex = 37;
@@ -823,7 +850,7 @@
             // btnNextLine2
             // 
             btnNextLine2.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
-            btnNextLine2.Location = new Point(1186, 271);
+            btnNextLine2.Location = new Point(985, 271);
             btnNextLine2.Name = "btnNextLine2";
             btnNextLine2.Size = new Size(75, 23);
             btnNextLine2.TabIndex = 36;
@@ -836,7 +863,7 @@
             listBox2.FormattingEnabled = true;
             listBox2.Location = new Point(195, 22);
             listBox2.Name = "listBox2";
-            listBox2.Size = new Size(1066, 228);
+            listBox2.Size = new Size(865, 228);
             listBox2.TabIndex = 35;
             // 
             // GroupFlagsSecondary
@@ -1236,18 +1263,39 @@
             // 
             checkBox18.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
             checkBox18.AutoSize = true;
-            checkBox18.Location = new Point(759, 274);
+            checkBox18.Location = new Point(558, 274);
             checkBox18.Name = "checkBox18";
             checkBox18.Size = new Size(110, 20);
             checkBox18.TabIndex = 38;
             checkBox18.Text = "Control Both";
             checkBox18.UseVisualStyleBackColor = true;
             // 
+            // GroupUtilities
+            // 
+            GroupUtilities.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Right;
+            GroupUtilities.Controls.Add(txtLog);
+            GroupUtilities.Location = new Point(1087, 30);
+            GroupUtilities.Name = "GroupUtilities";
+            GroupUtilities.Size = new Size(195, 627);
+            GroupUtilities.TabIndex = 3;
+            GroupUtilities.TabStop = false;
+            GroupUtilities.Text = "Utilities";
+            // 
+            // txtLog
+            // 
+            txtLog.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
+            txtLog.Location = new Point(6, 22);
+            txtLog.Multiline = true;
+            txtLog.Name = "txtLog";
+            txtLog.Size = new Size(183, 327);
+            txtLog.TabIndex = 0;
+            // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(7F, 16F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(1294, 669);
+            Controls.Add(GroupUtilities);
             Controls.Add(groupBoxSecondary);
             Controls.Add(groupBoxPrimary);
             Controls.Add(menuStrip1);
@@ -1266,6 +1314,8 @@
             groupBoxSecondary.PerformLayout();
             GroupFlagsSecondary.ResumeLayout(false);
             GroupFlagsSecondary.PerformLayout();
+            GroupUtilities.ResumeLayout(false);
+            GroupUtilities.PerformLayout();
             ResumeLayout(false);
             PerformLayout();
         }
@@ -1381,6 +1431,10 @@
         private Label lblPC2;
         private CheckBox checkBox18;
         private Splitter splitter1;
+        private TextBox txtCurrentLine;
+        private Label label1;
+        private GroupBox GroupUtilities;
+        private TextBox txtLog;
     }
 }
 
