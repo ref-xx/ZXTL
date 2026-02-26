@@ -12,6 +12,7 @@ namespace ZXTL
         private readonly Color _registerChangedBackColor = SystemColors.Info;
         private readonly Color _registerDiffForeColor = Color.Red;
         private readonly List<TemplateAvailableFieldEntry> _templateAvailableFields = new();
+        private bool _suppressFieldModUiEvents;
         private TraceLogData PrimaryLog => _primaryPane.LogData;
         private TraceLogData SecondaryLog => _secondaryPane.LogData;
 
@@ -236,11 +237,21 @@ namespace ZXTL
             btnFieldDown.Click += btnFieldDown_Click;
             btnFieldRemove.Click += btnFieldRemove_Click;
             btnFieldApply.Click += btnFieldApply_Click;
+            btnApplyMod.Click += btnApplyMod_Click;
+            listAvailableFields.SelectedIndexChanged += listAvailableFields_SelectedIndexChanged;
+            radioButtonHex.CheckedChanged += FieldModInputs_Changed;
+            radioButtonDec.CheckedChanged += FieldModInputs_Changed;
+            chkFieldUseLength.CheckedChanged += FieldModInputs_Changed;
+            txtFieldModLen.TextChanged += FieldModInputs_Changed;
+            chkUseHex.CheckedChanged += FieldModInputs_Changed;
+            chkUseHexPrefix.CheckedChanged += FieldModInputs_Changed;
+            comboPrefixes.SelectedIndexChanged += FieldModInputs_Changed;
+            comboPrefixes.TextChanged += FieldModInputs_Changed;
         }
 
         private void btnGrabLine_Click(object? sender, EventArgs e)
         {
-            PopulateAvailableFieldsFromPrimaryZxtl();
+            
 
             if (listBox1.SelectedItem is not string selectedLine)
             {
@@ -267,6 +278,7 @@ namespace ZXTL
                     return;
                 }
             }
+            PopulateAvailableFieldsFromPrimaryZxtl();
 
             richTextBox1.Text = selectedLine;
             richTemplate.Text = "ZXTL V" + (comboVersions.SelectedItem?.ToString() ?? "0003" ) + "," + txtEmulatorName.Text + ",";
@@ -319,6 +331,178 @@ namespace ZXTL
             {
                 listAvailableFields.EndUpdate();
             }
+
+            SyncFieldModEditorFromSelection();
+        }
+
+        private void listAvailableFields_SelectedIndexChanged(object? sender, EventArgs e)
+        {
+            SyncFieldModEditorFromSelection();
+        }
+
+        private void SyncFieldModEditorFromSelection()
+        {
+            _suppressFieldModUiEvents = true;
+            try
+            {
+                if (!TryGetAvailableFieldSelection(out int selectedIndex))
+                {
+                    txtFieldDefinition.Text = string.Empty;
+                    txtFieldModLen.Text = "0";
+                    txtResultKeyword.Text = string.Empty;
+                    chkFieldUseLength.Checked = false;
+                    radioButtonHex.Checked = false;
+                    radioButtonDec.Checked = false;
+                    radioButtonHex.Enabled = false;
+                    radioButtonDec.Enabled = false;
+                    txtFieldModLen.Enabled = false;
+                    return;
+                }
+
+                TemplateAvailableFieldEntry entry = _templateAvailableFields[selectedIndex];
+                TraceLogOrderFieldSpec item = entry.Item;
+
+                txtFieldDefinition.Text = TraceLogOrderParser.Describe(item);
+
+                bool canEditNumericFormat =
+                    item.Kind == TraceLogOrderItemKind.FormatDirective &&
+                    (item.FormatTarget == TraceLogOrderFormatTarget.Registers ||
+                     item.FormatTarget == TraceLogOrderFormatTarget.DollarValue);
+
+                radioButtonHex.Enabled = canEditNumericFormat;
+                radioButtonDec.Enabled = canEditNumericFormat;
+
+                if (canEditNumericFormat)
+                {
+                    radioButtonHex.Checked = item.ValueFormat == TraceLogOrderValueFormat.Hex;
+                    radioButtonDec.Checked = item.ValueFormat == TraceLogOrderValueFormat.Decimal;
+
+                    if (!radioButtonHex.Checked && !radioButtonDec.Checked)
+                    {
+                        radioButtonHex.Checked = true;
+                    }
+                }
+                else
+                {
+                    radioButtonHex.Checked = false;
+                    radioButtonDec.Checked = false;
+                }
+
+                int width = item.FixedWidth ?? 0;
+                chkFieldUseLength.Checked = width > 0;
+                txtFieldModLen.Enabled = chkFieldUseLength.Checked;
+                txtFieldModLen.Text = width.ToString(CultureInfo.InvariantCulture);
+            }
+            finally
+            {
+                _suppressFieldModUiEvents = false;
+            }
+
+            UpdateFieldModResultKeywordPreview();
+        }
+
+        private void FieldModInputs_Changed(object? sender, EventArgs e)
+        {
+            if (_suppressFieldModUiEvents)
+            {
+                return;
+            }
+
+            txtFieldModLen.Enabled = chkFieldUseLength.Checked;
+            UpdateFieldModResultKeywordPreview();
+        }
+
+        private void UpdateFieldModResultKeywordPreview()
+        {
+            if (!TryGetAvailableFieldSelection(out int selectedIndex))
+            {
+                txtResultKeyword.Text = string.Empty;
+                return;
+            }
+
+            TemplateAvailableFieldEntry entry = _templateAvailableFields[selectedIndex];
+            if (!TryBuildModifiedFieldSpecFromUi(entry.Item, out TraceLogOrderFieldSpec modifiedSpec, out string? error))
+            {
+                txtResultKeyword.Text = string.Empty;
+                if (!string.IsNullOrWhiteSpace(error))
+                {
+                    txtResultKeyword.Text = error;
+                }
+                return;
+            }
+
+            txtResultKeyword.Text = modifiedSpec.RawToken;
+        }
+
+        private void btnApplyMod_Click(object? sender, EventArgs e)
+        {
+            if (!TryGetAvailableFieldSelection(out int selectedIndex))
+            {
+                ShowTemplateEditorError("Select a field in Available Fields first.");
+                return;
+            }
+
+            TemplateAvailableFieldEntry entry = _templateAvailableFields[selectedIndex];
+            if (!TryBuildModifiedFieldSpecFromUi(entry.Item, out TraceLogOrderFieldSpec modifiedSpec, out string? error))
+            {
+                ShowTemplateEditorError(error ?? "Invalid field modification.");
+                return;
+            }
+
+            _templateAvailableFields[selectedIndex] = entry.WithItem(modifiedSpec);
+            RefreshAvailableFieldsListDisplay(selectedIndex);
+            ApplyTracePreviewFromAvailableFields();
+        }
+
+        private bool TryBuildModifiedFieldSpecFromUi(
+            TraceLogOrderFieldSpec sourceItem,
+            out TraceLogOrderFieldSpec modifiedSpec,
+            out string? error)
+        {
+            error = null;
+            modifiedSpec = CloneFieldSpec(sourceItem);
+
+            if (modifiedSpec.Kind == TraceLogOrderItemKind.FormatDirective &&
+                (modifiedSpec.FormatTarget == TraceLogOrderFormatTarget.Registers ||
+                 modifiedSpec.FormatTarget == TraceLogOrderFormatTarget.DollarValue))
+            {
+                if (radioButtonHex.Checked)
+                {
+                    modifiedSpec.ValueFormat = TraceLogOrderValueFormat.Hex;
+                }
+                else if (radioButtonDec.Checked)
+                {
+                    modifiedSpec.ValueFormat = TraceLogOrderValueFormat.Decimal;
+                }
+            }
+
+            if (chkFieldUseLength.Checked)
+            {
+                if (!int.TryParse(txtFieldModLen.Text, NumberStyles.Integer, CultureInfo.InvariantCulture, out int width) || width <= 0)
+                {
+                    error = "Field length must be greater than 0.";
+                    return false;
+                }
+
+                modifiedSpec.FixedWidth = width;
+            }
+            else
+            {
+                modifiedSpec.FixedWidth = null;
+            }
+
+            string token = BuildOrderTokenFromSpec(modifiedSpec);
+            TraceLogOrderDefinition parsed = TraceLogOrderParser.Parse(token);
+            if (parsed.Items.Count != 1)
+            {
+                error = "Modified keyword did not produce exactly one field.";
+                return false;
+            }
+
+            TraceLogOrderFieldSpec reparsed = CloneFieldSpec(parsed.Items[0]);
+            reparsed.ExpandedFromToken = sourceItem.ExpandedFromToken;
+            modifiedSpec = reparsed;
+            return true;
         }
 
         private void btnFieldUp_Click(object? sender, EventArgs e)
@@ -482,9 +666,9 @@ namespace ZXTL
             return sb.ToString();
         }
 
-        private static string FormatPreviewFieldValue(TraceLogOrderFieldSpec item, string value)
+        private string FormatPreviewFieldValue(TraceLogOrderFieldSpec item, string value)
         {
-            string text = value ?? string.Empty;
+            string text = TryReformatPreviewFieldValue(item, value ?? string.Empty);
 
             if (item.FixedWidth is int width && width > 0)
             {
@@ -497,6 +681,152 @@ namespace ZXTL
             }
 
             return text;
+        }
+
+        private string TryReformatPreviewFieldValue(TraceLogOrderFieldSpec item, string rawValue)
+        {
+            if (item.Kind != TraceLogOrderItemKind.FormatDirective)
+            {
+                return rawValue;
+            }
+
+            if (item.ValueFormat != TraceLogOrderValueFormat.Hex &&
+                item.ValueFormat != TraceLogOrderValueFormat.Decimal)
+            {
+                return rawValue;
+            }
+
+            return item.FormatTarget switch
+            {
+                TraceLogOrderFormatTarget.Registers => ReformatRegisterDirectiveValue(rawValue, item.ValueFormat),
+                TraceLogOrderFormatTarget.DollarValue => ReformatScalarDirectiveValue(rawValue, item.ValueFormat),
+                _ => rawValue
+            };
+        }
+
+        private string ReformatRegisterDirectiveValue(string rawValue, TraceLogOrderValueFormat format)
+        {
+            int eqIndex = rawValue.IndexOf('=');
+            if (eqIndex <= 0 || eqIndex >= rawValue.Length - 1)
+            {
+                return rawValue;
+            }
+
+            string registerName = rawValue[..eqIndex].Trim();
+            string valueText = rawValue[(eqIndex + 1)..].Trim();
+
+            if (!TryParsePreviewNumber(valueText, out ulong numericValue))
+            {
+                return rawValue;
+            }
+
+            return $"{registerName}={FormatPreviewNumber(numericValue, format)}";
+        }
+
+        private string ReformatScalarDirectiveValue(string rawValue, TraceLogOrderValueFormat format)
+        {
+            if (!TryParsePreviewNumber(rawValue, out ulong numericValue))
+            {
+                return rawValue;
+            }
+
+            return FormatPreviewNumber(numericValue, format);
+        }
+
+        private bool TryParsePreviewNumber(string valueText, out ulong numericValue)
+        {
+            numericValue = 0;
+
+            string text = valueText.Trim();
+            if (text.Length == 0)
+            {
+                return false;
+            }
+
+            if (text.StartsWith("0x", StringComparison.OrdinalIgnoreCase))
+            {
+                return ulong.TryParse(text[2..], NumberStyles.HexNumber, CultureInfo.InvariantCulture, out numericValue);
+            }
+
+            if (text[0] == '$' || text[0] == '#')
+            {
+                return ulong.TryParse(text[1..], NumberStyles.HexNumber, CultureInfo.InvariantCulture, out numericValue);
+            }
+
+            bool hasHexLetter = text.Any(static c => (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'));
+            if (hasHexLetter)
+            {
+                return ulong.TryParse(text, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out numericValue);
+            }
+
+            if (ulong.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out numericValue))
+            {
+                return true;
+            }
+
+            return ulong.TryParse(text, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out numericValue);
+        }
+
+        private string FormatPreviewNumber(ulong value, TraceLogOrderValueFormat format)
+        {
+            if (format == TraceLogOrderValueFormat.Decimal)
+            {
+                return value.ToString(CultureInfo.InvariantCulture);
+            }
+
+            string prefix = chkUseHexPrefix.Checked ? (comboPrefixes.Text?.Trim() ?? string.Empty) : string.Empty;
+            return $"{prefix}{value:X}";
+        }
+
+        private static TraceLogOrderFieldSpec CloneFieldSpec(TraceLogOrderFieldSpec source)
+        {
+            return new TraceLogOrderFieldSpec
+            {
+                Kind = source.Kind,
+                Field = source.Field,
+                FormatTarget = source.FormatTarget,
+                ValueFormat = source.ValueFormat,
+                RawToken = source.RawToken,
+                NormalizedToken = source.NormalizedToken,
+                FixedWidth = source.FixedWidth,
+                ExpandedFromToken = source.ExpandedFromToken
+            };
+        }
+
+        private static string BuildOrderTokenFromSpec(TraceLogOrderFieldSpec item)
+        {
+            string baseToken = item.Kind switch
+            {
+                TraceLogOrderItemKind.FormatDirective => BuildFormatDirectiveToken(item),
+                _ => item.NormalizedToken
+            };
+
+            if (item.FixedWidth is int width && width > 0)
+            {
+                return $"{baseToken}#{width}";
+            }
+
+            return baseToken;
+        }
+
+        private static string BuildFormatDirectiveToken(TraceLogOrderFieldSpec item)
+        {
+            char left = item.FormatTarget switch
+            {
+                TraceLogOrderFormatTarget.Registers => 'R',
+                TraceLogOrderFormatTarget.DollarValue => '$',
+                _ => 'R'
+            };
+
+            char right = item.ValueFormat switch
+            {
+                TraceLogOrderValueFormat.Hex => 'H',
+                TraceLogOrderValueFormat.Decimal => 'D',
+                TraceLogOrderValueFormat.String => 'S',
+                _ => 'H'
+            };
+
+            return $"{left}={right}";
         }
 
         private string BuildFullTemplateFromEditorState()
@@ -2383,11 +2713,23 @@ namespace ZXTL
             public TemplateAvailableFieldEntry(int sourceIndex, TraceLogOrderFieldSpec item)
             {
                 SourceIndex = sourceIndex;
-                Item = item;
+                OriginalItem = CloneFieldSpec(item);
+                Item = CloneFieldSpec(item);
             }
 
             public int SourceIndex { get; }
-            public TraceLogOrderFieldSpec Item { get; }
+            public TraceLogOrderFieldSpec OriginalItem { get; }
+            public TraceLogOrderFieldSpec Item { get; private set; }
+
+            public TemplateAvailableFieldEntry WithItem(TraceLogOrderFieldSpec newItem)
+            {
+                TemplateAvailableFieldEntry clone = new(SourceIndex, OriginalItem)
+                {
+                    Item = CloneFieldSpec(newItem)
+                };
+
+                return clone;
+            }
         }
 
         private sealed class TraceLogData
