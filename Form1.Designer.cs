@@ -150,38 +150,47 @@
             chkVerboseDebug = new CheckBox();
             txtLog = new TextBox();
             groupTemplateEditor = new GroupBox();
+            tabOptions = new TabControl();
+            tabPage1 = new TabPage();
+            chkUseViewmem = new CheckBox();
+            chkUseTabbed = new CheckBox();
+            chkUseSlice = new CheckBox();
+            chkUseJumps = new CheckBox();
+            chkUseHex = new CheckBox();
+            chkUseHexPrefix = new CheckBox();
+            comboPrefixes = new ComboBox();
+            tabPage2 = new TabPage();
+            txtEmulatorName = new TextBox();
+            label3 = new Label();
+            comboVersions = new ComboBox();
+            label4 = new Label();
+            comboModel = new ComboBox();
+            label7 = new Label();
+            txtSnapshotFile = new TextBox();
+            btnSelectSnapshot = new Button();
+            label8 = new Label();
+            tabPage3 = new TabPage();
+            btnFieldApply = new Button();
+            btnFieldRemove = new Button();
+            btnFieldDown = new Button();
+            btnFieldUp = new Button();
+            listAvailableFields = new ListBox();
+            chkConvertTrace = new CheckBox();
             txtFieldStart = new TextBox();
             richTemplate = new RichTextBox();
             txtTracePreview = new TextBox();
             btnGrabLine = new Button();
             btnClearTemplate = new Button();
-            btnSelectSnapshot = new Button();
-            label8 = new Label();
-            txtSnapshotFile = new TextBox();
-            label7 = new Label();
-            comboModel = new ComboBox();
-            chkUseViewmem = new CheckBox();
-            chkUseJumps = new CheckBox();
-            chkUseSlice = new CheckBox();
-            chkUseTabbed = new CheckBox();
             chkTrimLen = new CheckBox();
             label6 = new Label();
             chkAutoFieldLen = new CheckBox();
             ChkFieldLen = new CheckBox();
             txtFieldLen = new TextBox();
-            label4 = new Label();
-            comboVersions = new ComboBox();
-            label3 = new Label();
-            txtEmulatorName = new TextBox();
             listPairs = new ListBox();
-            comboPrefixes = new ComboBox();
-            chkUseHexPrefix = new CheckBox();
-            chkUseHex = new CheckBox();
             listKeywords = new ListBox();
             listSingleRegs = new ListBox();
             richTextBox1 = new RichTextBox();
             btnSaveTrace = new Button();
-            chkConvertTrace = new CheckBox();
             groupBoxPrimary.SuspendLayout();
             GroupFlagsPrimary.SuspendLayout();
             menuStrip1.SuspendLayout();
@@ -189,6 +198,10 @@
             GroupFlagsSecondary.SuspendLayout();
             GroupUtilities.SuspendLayout();
             groupTemplateEditor.SuspendLayout();
+            tabOptions.SuspendLayout();
+            tabPage1.SuspendLayout();
+            tabPage2.SuspendLayout();
+            tabPage3.SuspendLayout();
             SuspendLayout();
             // 
             // groupBoxPrimary
@@ -1413,34 +1426,19 @@
             // groupTemplateEditor
             // 
             groupTemplateEditor.Anchor = AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
+            groupTemplateEditor.Controls.Add(tabOptions);
             groupTemplateEditor.Controls.Add(chkConvertTrace);
             groupTemplateEditor.Controls.Add(txtFieldStart);
             groupTemplateEditor.Controls.Add(richTemplate);
             groupTemplateEditor.Controls.Add(txtTracePreview);
             groupTemplateEditor.Controls.Add(btnGrabLine);
             groupTemplateEditor.Controls.Add(btnClearTemplate);
-            groupTemplateEditor.Controls.Add(btnSelectSnapshot);
-            groupTemplateEditor.Controls.Add(label8);
-            groupTemplateEditor.Controls.Add(txtSnapshotFile);
-            groupTemplateEditor.Controls.Add(label7);
-            groupTemplateEditor.Controls.Add(comboModel);
-            groupTemplateEditor.Controls.Add(chkUseViewmem);
-            groupTemplateEditor.Controls.Add(chkUseJumps);
-            groupTemplateEditor.Controls.Add(chkUseSlice);
-            groupTemplateEditor.Controls.Add(chkUseTabbed);
             groupTemplateEditor.Controls.Add(chkTrimLen);
             groupTemplateEditor.Controls.Add(label6);
             groupTemplateEditor.Controls.Add(chkAutoFieldLen);
             groupTemplateEditor.Controls.Add(ChkFieldLen);
             groupTemplateEditor.Controls.Add(txtFieldLen);
-            groupTemplateEditor.Controls.Add(label4);
-            groupTemplateEditor.Controls.Add(comboVersions);
-            groupTemplateEditor.Controls.Add(label3);
-            groupTemplateEditor.Controls.Add(txtEmulatorName);
             groupTemplateEditor.Controls.Add(listPairs);
-            groupTemplateEditor.Controls.Add(comboPrefixes);
-            groupTemplateEditor.Controls.Add(chkUseHexPrefix);
-            groupTemplateEditor.Controls.Add(chkUseHex);
             groupTemplateEditor.Controls.Add(listKeywords);
             groupTemplateEditor.Controls.Add(listSingleRegs);
             groupTemplateEditor.Controls.Add(richTextBox1);
@@ -1451,6 +1449,285 @@
             groupTemplateEditor.TabIndex = 46;
             groupTemplateEditor.TabStop = false;
             groupTemplateEditor.Text = "Trace Template Editor";
+            // 
+            // tabOptions
+            // 
+            tabOptions.Controls.Add(tabPage1);
+            tabOptions.Controls.Add(tabPage2);
+            tabOptions.Controls.Add(tabPage3);
+            tabOptions.Location = new Point(610, 84);
+            tabOptions.Name = "tabOptions";
+            tabOptions.SelectedIndex = 0;
+            tabOptions.Size = new Size(449, 162);
+            tabOptions.TabIndex = 38;
+            // 
+            // tabPage1
+            // 
+            tabPage1.Controls.Add(chkUseViewmem);
+            tabPage1.Controls.Add(chkUseTabbed);
+            tabPage1.Controls.Add(chkUseSlice);
+            tabPage1.Controls.Add(chkUseJumps);
+            tabPage1.Controls.Add(chkUseHex);
+            tabPage1.Controls.Add(chkUseHexPrefix);
+            tabPage1.Controls.Add(comboPrefixes);
+            tabPage1.Location = new Point(4, 25);
+            tabPage1.Name = "tabPage1";
+            tabPage1.Padding = new Padding(3);
+            tabPage1.Size = new Size(441, 133);
+            tabPage1.TabIndex = 0;
+            tabPage1.Text = "Options";
+            tabPage1.UseVisualStyleBackColor = true;
+            // 
+            // chkUseViewmem
+            // 
+            chkUseViewmem.AutoSize = true;
+            chkUseViewmem.Checked = true;
+            chkUseViewmem.CheckState = CheckState.Checked;
+            chkUseViewmem.Location = new Point(17, 7);
+            chkUseViewmem.Name = "chkUseViewmem";
+            chkUseViewmem.Size = new Size(187, 20);
+            chkUseViewmem.TabIndex = 26;
+            chkUseViewmem.Text = "Viewmem: Show all bytes";
+            chkUseViewmem.UseVisualStyleBackColor = true;
+            // 
+            // chkUseTabbed
+            // 
+            chkUseTabbed.AutoSize = true;
+            chkUseTabbed.Location = new Point(17, 32);
+            chkUseTabbed.Name = "chkUseTabbed";
+            chkUseTabbed.Size = new Size(208, 20);
+            chkUseTabbed.TabIndex = 23;
+            chkUseTabbed.Text = "Use Tabs instead of Spaces";
+            chkUseTabbed.UseVisualStyleBackColor = true;
+            // 
+            // chkUseSlice
+            // 
+            chkUseSlice.AutoSize = true;
+            chkUseSlice.Location = new Point(17, 84);
+            chkUseSlice.Name = "chkUseSlice";
+            chkUseSlice.Size = new Size(271, 20);
+            chkUseSlice.TabIndex = 24;
+            chkUseSlice.Text = "Slice: inst. is logged before exec.";
+            chkUseSlice.UseVisualStyleBackColor = true;
+            // 
+            // chkUseJumps
+            // 
+            chkUseJumps.AutoSize = true;
+            chkUseJumps.Location = new Point(17, 58);
+            chkUseJumps.Name = "chkUseJumps";
+            chkUseJumps.Size = new Size(271, 20);
+            chkUseJumps.TabIndex = 25;
+            chkUseJumps.Text = "OnlyJumps: Log on control flow only";
+            chkUseJumps.UseVisualStyleBackColor = true;
+            // 
+            // chkUseHex
+            // 
+            chkUseHex.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+            chkUseHex.AutoSize = true;
+            chkUseHex.Checked = true;
+            chkUseHex.CheckState = CheckState.Checked;
+            chkUseHex.Location = new Point(17, 107);
+            chkUseHex.Name = "chkUseHex";
+            chkUseHex.Size = new Size(117, 20);
+            chkUseHex.TabIndex = 9;
+            chkUseHex.Text = "Hex Values ->";
+            chkUseHex.UseVisualStyleBackColor = true;
+            // 
+            // chkUseHexPrefix
+            // 
+            chkUseHexPrefix.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+            chkUseHexPrefix.AutoSize = true;
+            chkUseHexPrefix.Checked = true;
+            chkUseHexPrefix.CheckState = CheckState.Checked;
+            chkUseHexPrefix.Location = new Point(141, 106);
+            chkUseHexPrefix.Name = "chkUseHexPrefix";
+            chkUseHexPrefix.Size = new Size(89, 20);
+            chkUseHexPrefix.TabIndex = 10;
+            chkUseHexPrefix.Text = "Prefixed:";
+            chkUseHexPrefix.UseVisualStyleBackColor = true;
+            // 
+            // comboPrefixes
+            // 
+            comboPrefixes.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+            comboPrefixes.FormattingEnabled = true;
+            comboPrefixes.Items.AddRange(new object[] { "$", "#" });
+            comboPrefixes.Location = new Point(236, 104);
+            comboPrefixes.Name = "comboPrefixes";
+            comboPrefixes.Size = new Size(41, 24);
+            comboPrefixes.TabIndex = 11;
+            comboPrefixes.Text = "$";
+            // 
+            // tabPage2
+            // 
+            tabPage2.Controls.Add(txtEmulatorName);
+            tabPage2.Controls.Add(label3);
+            tabPage2.Controls.Add(comboVersions);
+            tabPage2.Controls.Add(label4);
+            tabPage2.Controls.Add(comboModel);
+            tabPage2.Controls.Add(label7);
+            tabPage2.Controls.Add(txtSnapshotFile);
+            tabPage2.Controls.Add(btnSelectSnapshot);
+            tabPage2.Controls.Add(label8);
+            tabPage2.Location = new Point(4, 24);
+            tabPage2.Name = "tabPage2";
+            tabPage2.Padding = new Padding(3);
+            tabPage2.Size = new Size(441, 134);
+            tabPage2.TabIndex = 1;
+            tabPage2.Text = "Definitions";
+            tabPage2.UseVisualStyleBackColor = true;
+            // 
+            // txtEmulatorName
+            // 
+            txtEmulatorName.Location = new Point(124, 11);
+            txtEmulatorName.Name = "txtEmulatorName";
+            txtEmulatorName.ReadOnly = true;
+            txtEmulatorName.Size = new Size(197, 23);
+            txtEmulatorName.TabIndex = 13;
+            txtEmulatorName.Text = "ZXTL Tool V0.3";
+            // 
+            // label3
+            // 
+            label3.AutoSize = true;
+            label3.Location = new Point(13, 14);
+            label3.Name = "label3";
+            label3.Size = new Size(105, 16);
+            label3.TabIndex = 14;
+            label3.Text = "Emulator Name:";
+            // 
+            // comboVersions
+            // 
+            comboVersions.DropDownStyle = ComboBoxStyle.DropDownList;
+            comboVersions.FormattingEnabled = true;
+            comboVersions.Items.AddRange(new object[] { "0001", "0002", "0003" });
+            comboVersions.Location = new Point(124, 40);
+            comboVersions.Name = "comboVersions";
+            comboVersions.Size = new Size(197, 24);
+            comboVersions.TabIndex = 15;
+            // 
+            // label4
+            // 
+            label4.AutoSize = true;
+            label4.Location = new Point(27, 43);
+            label4.Name = "label4";
+            label4.Size = new Size(91, 16);
+            label4.TabIndex = 16;
+            label4.Text = "ZXTL Compat:";
+            // 
+            // comboModel
+            // 
+            comboModel.DropDownStyle = ComboBoxStyle.DropDownList;
+            comboModel.FormattingEnabled = true;
+            comboModel.Items.AddRange(new object[] { "16", "48", "128", "+2", "+2A", "+3", "PT", "TC", "TK" });
+            comboModel.Location = new Point(123, 70);
+            comboModel.Name = "comboModel";
+            comboModel.Size = new Size(197, 24);
+            comboModel.TabIndex = 27;
+            // 
+            // label7
+            // 
+            label7.AutoSize = true;
+            label7.Location = new Point(13, 73);
+            label7.Name = "label7";
+            label7.Size = new Size(105, 16);
+            label7.TabIndex = 28;
+            label7.Text = "Machine Model:";
+            // 
+            // txtSnapshotFile
+            // 
+            txtSnapshotFile.Location = new Point(124, 100);
+            txtSnapshotFile.Name = "txtSnapshotFile";
+            txtSnapshotFile.ReadOnly = true;
+            txtSnapshotFile.Size = new Size(153, 23);
+            txtSnapshotFile.TabIndex = 29;
+            txtSnapshotFile.Text = "Not Set.";
+            // 
+            // btnSelectSnapshot
+            // 
+            btnSelectSnapshot.Location = new Point(283, 100);
+            btnSelectSnapshot.Name = "btnSelectSnapshot";
+            btnSelectSnapshot.Size = new Size(37, 23);
+            btnSelectSnapshot.TabIndex = 31;
+            btnSelectSnapshot.Text = "...";
+            btnSelectSnapshot.UseVisualStyleBackColor = true;
+            // 
+            // label8
+            // 
+            label8.AutoSize = true;
+            label8.Location = new Point(13, 103);
+            label8.Name = "label8";
+            label8.Size = new Size(105, 16);
+            label8.TabIndex = 30;
+            label8.Text = "Snapshot File:";
+            // 
+            // tabPage3
+            // 
+            tabPage3.Controls.Add(btnFieldApply);
+            tabPage3.Controls.Add(btnFieldRemove);
+            tabPage3.Controls.Add(btnFieldDown);
+            tabPage3.Controls.Add(btnFieldUp);
+            tabPage3.Controls.Add(listAvailableFields);
+            tabPage3.Location = new Point(4, 25);
+            tabPage3.Name = "tabPage3";
+            tabPage3.Size = new Size(441, 133);
+            tabPage3.TabIndex = 2;
+            tabPage3.Text = "Available Fields";
+            tabPage3.UseVisualStyleBackColor = true;
+            // 
+            // btnFieldApply
+            // 
+            btnFieldApply.Location = new Point(336, 100);
+            btnFieldApply.Name = "btnFieldApply";
+            btnFieldApply.Size = new Size(102, 23);
+            btnFieldApply.TabIndex = 4;
+            btnFieldApply.Text = "Apply";
+            btnFieldApply.UseVisualStyleBackColor = true;
+            // 
+            // btnFieldRemove
+            // 
+            btnFieldRemove.Location = new Point(336, 62);
+            btnFieldRemove.Name = "btnFieldRemove";
+            btnFieldRemove.Size = new Size(102, 23);
+            btnFieldRemove.TabIndex = 3;
+            btnFieldRemove.Text = "Remove";
+            btnFieldRemove.UseVisualStyleBackColor = true;
+            // 
+            // btnFieldDown
+            // 
+            btnFieldDown.Location = new Point(336, 36);
+            btnFieldDown.Name = "btnFieldDown";
+            btnFieldDown.Size = new Size(102, 23);
+            btnFieldDown.TabIndex = 2;
+            btnFieldDown.Text = "Move Down";
+            btnFieldDown.UseVisualStyleBackColor = true;
+            // 
+            // btnFieldUp
+            // 
+            btnFieldUp.Location = new Point(336, 10);
+            btnFieldUp.Name = "btnFieldUp";
+            btnFieldUp.Size = new Size(102, 23);
+            btnFieldUp.TabIndex = 1;
+            btnFieldUp.Text = "Move Up";
+            btnFieldUp.UseVisualStyleBackColor = true;
+            // 
+            // listAvailableFields
+            // 
+            listAvailableFields.FormattingEnabled = true;
+            listAvailableFields.Location = new Point(3, 7);
+            listAvailableFields.Name = "listAvailableFields";
+            listAvailableFields.Size = new Size(327, 116);
+            listAvailableFields.TabIndex = 0;
+            // 
+            // chkConvertTrace
+            // 
+            chkConvertTrace.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
+            chkConvertTrace.AutoSize = true;
+            chkConvertTrace.Enabled = false;
+            chkConvertTrace.Location = new Point(725, 285);
+            chkConvertTrace.Name = "chkConvertTrace";
+            chkConvertTrace.Size = new Size(173, 20);
+            chkConvertTrace.TabIndex = 37;
+            chkConvertTrace.Text = "Convert ZXTL Tracelog";
+            chkConvertTrace.UseVisualStyleBackColor = true;
             // 
             // txtFieldStart
             // 
@@ -1504,99 +1781,6 @@
             btnClearTemplate.Text = "Clear Template";
             btnClearTemplate.UseVisualStyleBackColor = true;
             // 
-            // btnSelectSnapshot
-            // 
-            btnSelectSnapshot.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
-            btnSelectSnapshot.Location = new Point(1022, 176);
-            btnSelectSnapshot.Name = "btnSelectSnapshot";
-            btnSelectSnapshot.Size = new Size(37, 23);
-            btnSelectSnapshot.TabIndex = 31;
-            btnSelectSnapshot.Text = "...";
-            btnSelectSnapshot.UseVisualStyleBackColor = true;
-            // 
-            // label8
-            // 
-            label8.Anchor = AnchorStyles.Top | AnchorStyles.Right;
-            label8.AutoSize = true;
-            label8.Location = new Point(752, 179);
-            label8.Name = "label8";
-            label8.Size = new Size(105, 16);
-            label8.TabIndex = 30;
-            label8.Text = "Snapshot File:";
-            // 
-            // txtSnapshotFile
-            // 
-            txtSnapshotFile.Anchor = AnchorStyles.Top | AnchorStyles.Right;
-            txtSnapshotFile.Location = new Point(863, 176);
-            txtSnapshotFile.Name = "txtSnapshotFile";
-            txtSnapshotFile.ReadOnly = true;
-            txtSnapshotFile.Size = new Size(153, 23);
-            txtSnapshotFile.TabIndex = 29;
-            txtSnapshotFile.Text = "Not Set.";
-            // 
-            // label7
-            // 
-            label7.Anchor = AnchorStyles.Top | AnchorStyles.Right;
-            label7.AutoSize = true;
-            label7.Location = new Point(752, 149);
-            label7.Name = "label7";
-            label7.Size = new Size(105, 16);
-            label7.TabIndex = 28;
-            label7.Text = "Machine Model:";
-            // 
-            // comboModel
-            // 
-            comboModel.Anchor = AnchorStyles.Top | AnchorStyles.Right;
-            comboModel.DropDownStyle = ComboBoxStyle.DropDownList;
-            comboModel.FormattingEnabled = true;
-            comboModel.Items.AddRange(new object[] { "16", "48", "128", "+2", "+2A", "+3", "PT", "TC", "TK" });
-            comboModel.Location = new Point(862, 146);
-            comboModel.Name = "comboModel";
-            comboModel.Size = new Size(197, 24);
-            comboModel.TabIndex = 27;
-            // 
-            // chkUseViewmem
-            // 
-            chkUseViewmem.AutoSize = true;
-            chkUseViewmem.Checked = true;
-            chkUseViewmem.CheckState = CheckState.Checked;
-            chkUseViewmem.Location = new Point(506, 157);
-            chkUseViewmem.Name = "chkUseViewmem";
-            chkUseViewmem.Size = new Size(187, 20);
-            chkUseViewmem.TabIndex = 26;
-            chkUseViewmem.Text = "Viewmem: Show all bytes";
-            chkUseViewmem.UseVisualStyleBackColor = true;
-            // 
-            // chkUseJumps
-            // 
-            chkUseJumps.AutoSize = true;
-            chkUseJumps.Location = new Point(506, 208);
-            chkUseJumps.Name = "chkUseJumps";
-            chkUseJumps.Size = new Size(271, 20);
-            chkUseJumps.TabIndex = 25;
-            chkUseJumps.Text = "OnlyJumps: Log on control flow only";
-            chkUseJumps.UseVisualStyleBackColor = true;
-            // 
-            // chkUseSlice
-            // 
-            chkUseSlice.AutoSize = true;
-            chkUseSlice.Location = new Point(506, 234);
-            chkUseSlice.Name = "chkUseSlice";
-            chkUseSlice.Size = new Size(271, 20);
-            chkUseSlice.TabIndex = 24;
-            chkUseSlice.Text = "Slice: inst. is logged before exec.";
-            chkUseSlice.UseVisualStyleBackColor = true;
-            // 
-            // chkUseTabbed
-            // 
-            chkUseTabbed.AutoSize = true;
-            chkUseTabbed.Location = new Point(506, 182);
-            chkUseTabbed.Name = "chkUseTabbed";
-            chkUseTabbed.Size = new Size(208, 20);
-            chkUseTabbed.TabIndex = 23;
-            chkUseTabbed.Text = "Use Tabs instead of Spaces";
-            chkUseTabbed.UseVisualStyleBackColor = true;
-            // 
             // chkTrimLen
             // 
             chkTrimLen.AutoSize = true;
@@ -1648,47 +1832,6 @@
             txtFieldLen.TabIndex = 17;
             txtFieldLen.Text = "0";
             // 
-            // label4
-            // 
-            label4.Anchor = AnchorStyles.Top | AnchorStyles.Right;
-            label4.AutoSize = true;
-            label4.Location = new Point(766, 119);
-            label4.Name = "label4";
-            label4.Size = new Size(91, 16);
-            label4.TabIndex = 16;
-            label4.Text = "ZXTL Compat:";
-            // 
-            // comboVersions
-            // 
-            comboVersions.Anchor = AnchorStyles.Top | AnchorStyles.Right;
-            comboVersions.DropDownStyle = ComboBoxStyle.DropDownList;
-            comboVersions.FormattingEnabled = true;
-            comboVersions.Items.AddRange(new object[] { "0001", "0002", "0003" });
-            comboVersions.Location = new Point(863, 116);
-            comboVersions.Name = "comboVersions";
-            comboVersions.Size = new Size(197, 24);
-            comboVersions.TabIndex = 15;
-            // 
-            // label3
-            // 
-            label3.Anchor = AnchorStyles.Top | AnchorStyles.Right;
-            label3.AutoSize = true;
-            label3.Location = new Point(752, 90);
-            label3.Name = "label3";
-            label3.Size = new Size(105, 16);
-            label3.TabIndex = 14;
-            label3.Text = "Emulator Name:";
-            // 
-            // txtEmulatorName
-            // 
-            txtEmulatorName.Anchor = AnchorStyles.Top | AnchorStyles.Right;
-            txtEmulatorName.Location = new Point(863, 87);
-            txtEmulatorName.Name = "txtEmulatorName";
-            txtEmulatorName.ReadOnly = true;
-            txtEmulatorName.Size = new Size(197, 23);
-            txtEmulatorName.TabIndex = 13;
-            txtEmulatorName.Text = "ZXTL Tool V0.3";
-            // 
             // listPairs
             // 
             listPairs.FormattingEnabled = true;
@@ -1698,43 +1841,6 @@
             listPairs.Size = new Size(63, 164);
             listPairs.TabIndex = 12;
             listPairs.Tag = "2";
-            // 
-            // comboPrefixes
-            // 
-            comboPrefixes.Anchor = AnchorStyles.Top | AnchorStyles.Right;
-            comboPrefixes.FormattingEnabled = true;
-            comboPrefixes.Items.AddRange(new object[] { "$", "#" });
-            comboPrefixes.Location = new Point(1022, 229);
-            comboPrefixes.Name = "comboPrefixes";
-            comboPrefixes.Size = new Size(41, 24);
-            comboPrefixes.TabIndex = 11;
-            comboPrefixes.Text = "$";
-            // 
-            // chkUseHexPrefix
-            // 
-            chkUseHexPrefix.Anchor = AnchorStyles.Top | AnchorStyles.Right;
-            chkUseHexPrefix.AutoSize = true;
-            chkUseHexPrefix.Checked = true;
-            chkUseHexPrefix.CheckState = CheckState.Checked;
-            chkUseHexPrefix.Location = new Point(927, 231);
-            chkUseHexPrefix.Name = "chkUseHexPrefix";
-            chkUseHexPrefix.Size = new Size(89, 20);
-            chkUseHexPrefix.TabIndex = 10;
-            chkUseHexPrefix.Text = "Prefixed:";
-            chkUseHexPrefix.UseVisualStyleBackColor = true;
-            // 
-            // chkUseHex
-            // 
-            chkUseHex.Anchor = AnchorStyles.Top | AnchorStyles.Right;
-            chkUseHex.AutoSize = true;
-            chkUseHex.Checked = true;
-            chkUseHex.CheckState = CheckState.Checked;
-            chkUseHex.Location = new Point(803, 232);
-            chkUseHex.Name = "chkUseHex";
-            chkUseHex.Size = new Size(117, 20);
-            chkUseHex.TabIndex = 9;
-            chkUseHex.Text = "Hex Values ->";
-            chkUseHex.UseVisualStyleBackColor = true;
             // 
             // listKeywords
             // 
@@ -1778,18 +1884,6 @@
             btnSaveTrace.Text = "Save Trace As...";
             btnSaveTrace.UseVisualStyleBackColor = true;
             // 
-            // chkConvertTrace
-            // 
-            chkConvertTrace.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
-            chkConvertTrace.AutoSize = true;
-            chkConvertTrace.Enabled = false;
-            chkConvertTrace.Location = new Point(725, 285);
-            chkConvertTrace.Name = "chkConvertTrace";
-            chkConvertTrace.Size = new Size(173, 20);
-            chkConvertTrace.TabIndex = 37;
-            chkConvertTrace.Text = "Convert ZXTL Tracelog";
-            chkConvertTrace.UseVisualStyleBackColor = true;
-            // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(7F, 16F);
@@ -1820,6 +1914,12 @@
             GroupUtilities.PerformLayout();
             groupTemplateEditor.ResumeLayout(false);
             groupTemplateEditor.PerformLayout();
+            tabOptions.ResumeLayout(false);
+            tabPage1.ResumeLayout(false);
+            tabPage1.PerformLayout();
+            tabPage2.ResumeLayout(false);
+            tabPage2.PerformLayout();
+            tabPage3.ResumeLayout(false);
             ResumeLayout(false);
             PerformLayout();
         }
@@ -1980,6 +2080,15 @@
         private RichTextBox richTemplate;
         private TextBox txtFieldStart;
         private CheckBox chkConvertTrace;
+        private TabControl tabOptions;
+        private TabPage tabPage1;
+        private TabPage tabPage2;
+        private TabPage tabPage3;
+        private ListBox listAvailableFields;
+        private Button btnFieldUp;
+        private Button btnFieldApply;
+        private Button btnFieldRemove;
+        private Button btnFieldDown;
     }
 }
 

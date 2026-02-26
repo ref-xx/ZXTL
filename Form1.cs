@@ -227,10 +227,16 @@ namespace ZXTL
         private void WireTemplateEditorButtons()
         {
             btnGrabLine.Click += btnGrabLine_Click;
+            richTextBox1.SelectionChanged += richTextBox1_SelectionChanged;
+            listSingleRegs.DoubleClick += TemplateFieldSource_DoubleClick;
+            listPairs.DoubleClick += TemplateFieldSource_DoubleClick;
+            listKeywords.DoubleClick += TemplateFieldSource_DoubleClick;
         }
 
         private void btnGrabLine_Click(object? sender, EventArgs e)
         {
+            PopulateAvailableFieldsFromPrimaryZxtl();
+
             if (listBox1.SelectedItem is not string selectedLine)
             {
                 MessageBox.Show(
@@ -242,7 +248,7 @@ namespace ZXTL
                 return;
             }
 
-            if (richTextBox1.TextLength > 0)
+            if ((richTextBox1.TextLength > 0)&&(richTextBox1.Text != "Press 'Grab Trace' to Start"))
             {
                 DialogResult overwriteResult = MessageBox.Show(
                     this,
@@ -258,6 +264,220 @@ namespace ZXTL
             }
 
             richTextBox1.Text = selectedLine;
+            richTemplate.Text = "ZXTL V" + (comboVersions.SelectedItem?.ToString() ?? "0003" ) + "," + txtEmulatorName.Text + ",";
+            txtTracePreview.Text = "";
+        }
+
+        private void PopulateAvailableFieldsFromPrimaryZxtl()
+        {
+            TraceLogData primaryLog = _primaryPane.LogData;
+
+            if (!primaryLog.HasTemplateHeader || primaryLog.TemplateHeader is null)
+            {
+                return;
+            }
+
+            listAvailableFields.BeginUpdate();
+            try
+            {
+                listAvailableFields.Items.Clear();
+
+                IReadOnlyList<TraceLogOrderFieldSpec> items = primaryLog.OrderDefinition.Items;
+                for (int i = 0; i < items.Count; i++)
+                {
+                    listAvailableFields.Items.Add(TraceLogOrderParser.Describe(items[i]));
+                }
+            }
+            finally
+            {
+                listAvailableFields.EndUpdate();
+            }
+
+            tabOptions.SelectedTab = tabPage3;
+        }
+
+        private void richTextBox1_SelectionChanged(object? sender, EventArgs e)
+        {
+            if (!chkAutoFieldLen.Checked)
+            {
+                return;
+            }
+
+            txtFieldLen.Text = richTextBox1.SelectionLength.ToString(CultureInfo.InvariantCulture);
+        }
+
+        private void TemplateFieldSource_DoubleClick(object? sender, EventArgs e)
+        {
+            if (sender is not ListBox sourceList)
+            {
+                return;
+            }
+
+            if (sourceList.SelectedIndex < 0 || sourceList.SelectedItem is null)
+            {
+                ShowTemplateEditorError("Double-click an item in the list.");
+                return;
+            }
+
+            int selectionStart = richTextBox1.SelectionStart;
+            int selectionLength = richTextBox1.SelectionLength;
+
+            if (selectionLength <= 0)
+            {
+                ShowTemplateEditorError("Select a region in the trace line before double-clicking a template field.");
+                return;
+            }
+
+            if (SelectionContainsNonDefaultFormatting(richTextBox1, selectionStart, selectionLength))
+            {
+                ShowTemplateEditorError("The selected region already contains colored text. Select an uncolored region.");
+                return;
+            }
+
+            string rawItemText = sourceList.SelectedItem.ToString() ?? string.Empty;
+            string itemText = rawItemText.Trim();
+            string token;
+
+            if (ReferenceEquals(sourceList, listPairs) || ReferenceEquals(sourceList, listSingleRegs))
+            {
+                token = "R" + itemText;
+            }
+            else if (ReferenceEquals(sourceList, listKeywords))
+            {
+                token = itemText;
+            }
+            else
+            {
+                ShowTemplateEditorError("Unsupported template source list.");
+                return;
+            }
+
+            if (ChkFieldLen.Checked)
+            {
+                if (!int.TryParse(txtFieldLen.Text, NumberStyles.Integer, CultureInfo.InvariantCulture, out int fieldLength) ||
+                    fieldLength <= 0)
+                {
+                    ShowTemplateEditorError("Field length must be a number greater than 0.");
+                    return;
+                }
+
+                token += $"#{fieldLength}";
+            }
+
+            Color tokenColor = MakeColor(sourceList.Tag, sourceList.SelectedIndex);
+            ApplyColorToSelection(richTextBox1, selectionStart, selectionLength, tokenColor);
+            AppendColoredTokenToTemplate(token, tokenColor);
+        }
+
+        private void ShowTemplateEditorError(string message)
+        {
+            MessageBox.Show(
+                this,
+                message,
+                "Template Editor",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Warning);
+        }
+
+        private static bool SelectionContainsNonDefaultFormatting(RichTextBox box, int start, int length)
+        {
+            if (length <= 0)
+            {
+                return false;
+            }
+
+            int originalStart = box.SelectionStart;
+            int originalLength = box.SelectionLength;
+
+            try
+            {
+                for (int i = 0; i < length; i++)
+                {
+                    box.Select(start + i, 1);
+
+                    Color fore = box.SelectionColor;
+                    Color back = box.SelectionBackColor;
+
+                    bool isDefaultFore = fore.IsEmpty || fore.ToArgb() == box.ForeColor.ToArgb();
+                    bool isDefaultBack = back.IsEmpty || back.ToArgb() == box.BackColor.ToArgb();
+
+                    if (!isDefaultFore || !isDefaultBack)
+                    {
+                        return true;
+                    }
+                }
+
+                return false;
+            }
+            finally
+            {
+                box.Select(originalStart, originalLength);
+            }
+        }
+
+        private static void ApplyColorToSelection(RichTextBox box, int start, int length, Color color)
+        {
+            int originalStart = box.SelectionStart;
+            int originalLength = box.SelectionLength;
+
+            try
+            {
+                box.Select(start, length);
+                box.SelectionBackColor = color;
+                box.SelectionColor = box.ForeColor;
+            }
+            finally
+            {
+                box.Select(originalStart, originalLength);
+            }
+        }
+
+        private void AppendColoredTokenToTemplate(string token, Color color)
+        {
+            int originalStart = richTemplate.SelectionStart;
+            int originalLength = richTemplate.SelectionLength;
+
+            try
+            {
+                richTemplate.Select(richTemplate.TextLength, 0);
+                richTemplate.SelectionBackColor = color;
+                richTemplate.SelectionColor = richTemplate.ForeColor;
+                richTemplate.SelectedText = token;
+                richTemplate.SelectionBackColor = richTemplate.BackColor;
+                richTemplate.SelectionColor = richTemplate.ForeColor;
+            }
+            finally
+            {
+                richTemplate.Select(originalStart, originalLength);
+            }
+        }
+
+        private static Color MakeColor(object? tagValue, int index)
+        {
+            int tag = 0;
+            if (tagValue is not null)
+            {
+                _ = int.TryParse(
+                    Convert.ToString(tagValue, CultureInfo.InvariantCulture),
+                    NumberStyles.Integer,
+                    CultureInfo.InvariantCulture,
+                    out tag);
+            }
+
+            unchecked
+            {
+                uint hash = 2166136261;
+                hash = (hash ^ (uint)tag) * 16777619;
+                hash = (hash ^ (uint)Math.Max(0, index)) * 16777619;
+                hash ^= hash >> 13;
+                hash *= 1274126177;
+                hash ^= hash >> 16;
+
+                int r = 96 + (int)(hash & 0x5F);
+                int g = 96 + (int)((hash >> 8) & 0x5F);
+                int b = 96 + (int)((hash >> 16) & 0x5F);
+                return Color.FromArgb(r, g, b);
+            }
         }
 
         private async Task ScrollBothPanesAsync(int delta)
