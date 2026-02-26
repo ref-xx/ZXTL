@@ -149,8 +149,10 @@
             label5 = new Label();
             chkVerboseDebug = new CheckBox();
             txtLog = new TextBox();
-            txtTemplate = new TextBox();
             groupTemplateEditor = new GroupBox();
+            txtFieldStart = new TextBox();
+            richTemplate = new RichTextBox();
+            txtTracePreview = new TextBox();
             btnGrabLine = new Button();
             btnClearTemplate = new Button();
             btnSelectSnapshot = new Button();
@@ -175,10 +177,11 @@
             comboPrefixes = new ComboBox();
             chkUseHexPrefix = new CheckBox();
             chkUseHex = new CheckBox();
-            listOptions = new ListBox();
+            listKeywords = new ListBox();
             listSingleRegs = new ListBox();
             richTextBox1 = new RichTextBox();
-            button1 = new Button();
+            btnSaveTrace = new Button();
+            chkConvertTrace = new CheckBox();
             groupBoxPrimary.SuspendLayout();
             GroupFlagsPrimary.SuspendLayout();
             menuStrip1.SuspendLayout();
@@ -797,6 +800,8 @@
             // 
             // templateEditorToolStripMenuItem
             // 
+            templateEditorToolStripMenuItem.Checked = true;
+            templateEditorToolStripMenuItem.CheckState = CheckState.Checked;
             templateEditorToolStripMenuItem.Name = "templateEditorToolStripMenuItem";
             templateEditorToolStripMenuItem.Size = new Size(157, 22);
             templateEditorToolStripMenuItem.Text = "Template Editor";
@@ -973,6 +978,7 @@
             GroupFlagsSecondary.TabIndex = 33;
             GroupFlagsSecondary.TabStop = false;
             GroupFlagsSecondary.Text = "S  Z  5  H  3  V  N  C";
+            GroupFlagsSecondary.Visible = false;
             // 
             // chkC2
             // 
@@ -1404,18 +1410,13 @@
             txtLog.Size = new Size(183, 327);
             txtLog.TabIndex = 0;
             // 
-            // txtTemplate
-            // 
-            txtTemplate.Anchor = AnchorStyles.Left | AnchorStyles.Right;
-            txtTemplate.Location = new Point(12, 261);
-            txtTemplate.Name = "txtTemplate";
-            txtTemplate.Size = new Size(1047, 23);
-            txtTemplate.TabIndex = 4;
-            txtTemplate.Text = "ZXTL v0003, ZXTL Tool V0.3";
-            // 
             // groupTemplateEditor
             // 
             groupTemplateEditor.Anchor = AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
+            groupTemplateEditor.Controls.Add(chkConvertTrace);
+            groupTemplateEditor.Controls.Add(txtFieldStart);
+            groupTemplateEditor.Controls.Add(richTemplate);
+            groupTemplateEditor.Controls.Add(txtTracePreview);
             groupTemplateEditor.Controls.Add(btnGrabLine);
             groupTemplateEditor.Controls.Add(btnClearTemplate);
             groupTemplateEditor.Controls.Add(btnSelectSnapshot);
@@ -1440,11 +1441,10 @@
             groupTemplateEditor.Controls.Add(comboPrefixes);
             groupTemplateEditor.Controls.Add(chkUseHexPrefix);
             groupTemplateEditor.Controls.Add(chkUseHex);
-            groupTemplateEditor.Controls.Add(listOptions);
+            groupTemplateEditor.Controls.Add(listKeywords);
             groupTemplateEditor.Controls.Add(listSingleRegs);
             groupTemplateEditor.Controls.Add(richTextBox1);
-            groupTemplateEditor.Controls.Add(button1);
-            groupTemplateEditor.Controls.Add(txtTemplate);
+            groupTemplateEditor.Controls.Add(btnSaveTrace);
             groupTemplateEditor.Location = new Point(12, 347);
             groupTemplateEditor.Name = "groupTemplateEditor";
             groupTemplateEditor.Size = new Size(1069, 310);
@@ -1452,10 +1452,42 @@
             groupTemplateEditor.TabStop = false;
             groupTemplateEditor.Text = "Trace Template Editor";
             // 
+            // txtFieldStart
+            // 
+            txtFieldStart.Location = new Point(443, 231);
+            txtFieldStart.Name = "txtFieldStart";
+            txtFieldStart.Size = new Size(40, 23);
+            txtFieldStart.TabIndex = 36;
+            txtFieldStart.Text = "0";
+            txtFieldStart.Visible = false;
+            // 
+            // richTemplate
+            // 
+            richTemplate.Anchor = AnchorStyles.Left | AnchorStyles.Right;
+            richTemplate.BorderStyle = BorderStyle.FixedSingle;
+            richTemplate.Location = new Point(12, 257);
+            richTemplate.Multiline = false;
+            richTemplate.Name = "richTemplate";
+            richTemplate.ScrollBars = RichTextBoxScrollBars.None;
+            richTemplate.Size = new Size(1048, 23);
+            richTemplate.TabIndex = 35;
+            richTemplate.Text = "Template";
+            // 
+            // txtTracePreview
+            // 
+            txtTracePreview.Anchor = AnchorStyles.Left | AnchorStyles.Right;
+            txtTracePreview.BorderStyle = BorderStyle.FixedSingle;
+            txtTracePreview.Location = new Point(12, 55);
+            txtTracePreview.Name = "txtTracePreview";
+            txtTracePreview.ReadOnly = true;
+            txtTracePreview.Size = new Size(1047, 23);
+            txtTracePreview.TabIndex = 34;
+            txtTracePreview.Text = "Preview";
+            // 
             // btnGrabLine
             // 
-            btnGrabLine.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
-            btnGrabLine.Location = new Point(12, 287);
+            btnGrabLine.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
+            btnGrabLine.Location = new Point(12, 282);
             btnGrabLine.Name = "btnGrabLine";
             btnGrabLine.Size = new Size(199, 23);
             btnGrabLine.TabIndex = 33;
@@ -1465,7 +1497,7 @@
             // btnClearTemplate
             // 
             btnClearTemplate.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
-            btnClearTemplate.Location = new Point(217, 287);
+            btnClearTemplate.Location = new Point(217, 282);
             btnClearTemplate.Name = "btnClearTemplate";
             btnClearTemplate.Size = new Size(126, 23);
             btnClearTemplate.TabIndex = 32;
@@ -1568,8 +1600,6 @@
             // chkTrimLen
             // 
             chkTrimLen.AutoSize = true;
-            chkTrimLen.Checked = true;
-            chkTrimLen.CheckState = CheckState.Checked;
             chkTrimLen.Location = new Point(289, 182);
             chkTrimLen.Name = "chkTrimLen";
             chkTrimLen.Size = new Size(131, 20);
@@ -1582,9 +1612,9 @@
             label6.AutoSize = true;
             label6.Location = new Point(289, 94);
             label6.Name = "label6";
-            label6.Size = new Size(273, 48);
+            label6.Size = new Size(315, 48);
             label6.TabIndex = 21;
-            label6.Text = "Select a field from the text box above\r\nand double click a list item to \r\nadd it to Template";
+            label6.Text = "Select a field from the white text box above\r\nand double click a list item to \r\nadd it to Template";
             // 
             // chkAutoFieldLen
             // 
@@ -1662,11 +1692,12 @@
             // listPairs
             // 
             listPairs.FormattingEnabled = true;
-            listPairs.Items.AddRange(new object[] { "PC", "SP", "AF", "BC", "DE", "HL", "IX ", "IY", "IR", "AF'", "BC'", "DE'", "HL'", "WZ", "IM", "IFF1", "IFF2" });
+            listPairs.Items.AddRange(new object[] { "PC", "SP", "AF", "BC", "DE", "HL", "IX ", "IY", "IR", "AFx", "BCx", "DEx", "HLx", "WZ", "IM", "IFF1", "IFF2" });
             listPairs.Location = new Point(89, 90);
             listPairs.Name = "listPairs";
             listPairs.Size = new Size(63, 164);
             listPairs.TabIndex = 12;
+            listPairs.Tag = "2";
             // 
             // comboPrefixes
             // 
@@ -1705,14 +1736,15 @@
             chkUseHex.Text = "Hex Values ->";
             chkUseHex.UseVisualStyleBackColor = true;
             // 
-            // listOptions
+            // listKeywords
             // 
-            listOptions.FormattingEnabled = true;
-            listOptions.Items.AddRange(new object[] { "CYCLE", "ADDRESS", "MARKERS", "DISASSEMBLY", "MEM4", "INDEX", "ASCII4", "BASEREGS", "EXREGS", "INTREGS" });
-            listOptions.Location = new Point(165, 90);
-            listOptions.Name = "listOptions";
-            listOptions.Size = new Size(118, 164);
-            listOptions.TabIndex = 8;
+            listKeywords.FormattingEnabled = true;
+            listKeywords.Items.AddRange(new object[] { "CYCLE", "ADDRESS", "MARKERS", "DISASSEMBLY", "MEM4", "INDEX", "ASCII4", "BASEREGS", "EXREGS", "INTREGS" });
+            listKeywords.Location = new Point(165, 90);
+            listKeywords.Name = "listKeywords";
+            listKeywords.Size = new Size(118, 164);
+            listKeywords.TabIndex = 8;
+            listKeywords.Tag = "3";
             // 
             // listSingleRegs
             // 
@@ -1722,25 +1754,41 @@
             listSingleRegs.Name = "listSingleRegs";
             listSingleRegs.Size = new Size(63, 164);
             listSingleRegs.TabIndex = 7;
+            listSingleRegs.Tag = "1";
             // 
             // richTextBox1
             // 
             richTextBox1.Anchor = AnchorStyles.Left | AnchorStyles.Right;
             richTextBox1.Location = new Point(12, 22);
+            richTextBox1.Multiline = false;
             richTextBox1.Name = "richTextBox1";
-            richTextBox1.Size = new Size(1048, 62);
+            richTextBox1.ReadOnly = true;
+            richTextBox1.ScrollBars = RichTextBoxScrollBars.None;
+            richTextBox1.Size = new Size(1048, 27);
             richTextBox1.TabIndex = 6;
-            richTextBox1.Text = "";
+            richTextBox1.Text = "Press 'Grab Trace' to Start";
             // 
-            // button1
+            // btnSaveTrace
             // 
-            button1.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
-            button1.Location = new Point(957, 287);
-            button1.Name = "button1";
-            button1.Size = new Size(103, 23);
-            button1.TabIndex = 5;
-            button1.Text = "Save Trace";
-            button1.UseVisualStyleBackColor = true;
+            btnSaveTrace.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
+            btnSaveTrace.Location = new Point(904, 283);
+            btnSaveTrace.Name = "btnSaveTrace";
+            btnSaveTrace.Size = new Size(159, 23);
+            btnSaveTrace.TabIndex = 5;
+            btnSaveTrace.Text = "Save Trace As...";
+            btnSaveTrace.UseVisualStyleBackColor = true;
+            // 
+            // chkConvertTrace
+            // 
+            chkConvertTrace.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
+            chkConvertTrace.AutoSize = true;
+            chkConvertTrace.Enabled = false;
+            chkConvertTrace.Location = new Point(725, 285);
+            chkConvertTrace.Name = "chkConvertTrace";
+            chkConvertTrace.Size = new Size(173, 20);
+            chkConvertTrace.TabIndex = 37;
+            chkConvertTrace.Text = "Convert ZXTL Tracelog";
+            chkConvertTrace.UseVisualStyleBackColor = true;
             // 
             // Form1
             // 
@@ -1894,15 +1942,14 @@
         private CheckBox chkVerboseDebug;
         private TextBox txtCurrentLine2;
         private Label label2;
-        private TextBox txtTemplate;
         private GroupBox groupTemplateEditor;
         private RichTextBox richTextBox1;
-        private Button button1;
+        private Button btnSaveTrace;
         private ListBox listSingleRegs;
         private ComboBox comboPrefixes;
         private CheckBox chkUseHexPrefix;
         private CheckBox chkUseHex;
-        private ListBox listOptions;
+        private ListBox listKeywords;
         private ListBox listPairs;
         private Label label4;
         private ComboBox comboVersions;
@@ -1929,6 +1976,10 @@
         private TextBox txtSnapshotFile;
         private Button btnClearTemplate;
         private Button btnGrabLine;
+        private TextBox txtTracePreview;
+        private RichTextBox richTemplate;
+        private TextBox txtFieldStart;
+        private CheckBox chkConvertTrace;
     }
 }
 

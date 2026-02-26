@@ -25,6 +25,7 @@ namespace ZXTL
             WireOptionalHeaderVisibilityCheckboxes();
             WirePaneSelectionHandlers();
             WireNavigationButtons();
+            WireTemplateEditorButtons();
         }
 
         protected override void OnFormClosed(FormClosedEventArgs e)
@@ -221,6 +222,42 @@ namespace ZXTL
 
             btnNextBoth.Click += async (_, _) => await ScrollBothPanesAsync(+1);
             btnPrevBoth.Click += async (_, _) => await ScrollBothPanesAsync(-1);
+        }
+
+        private void WireTemplateEditorButtons()
+        {
+            btnGrabLine.Click += btnGrabLine_Click;
+        }
+
+        private void btnGrabLine_Click(object? sender, EventArgs e)
+        {
+            if (listBox1.SelectedItem is not string selectedLine)
+            {
+                MessageBox.Show(
+                    this,
+                    "Load a trace log to the Primary Buffer first.",
+                    "Grab Trace Line",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Information);
+                return;
+            }
+
+            if (richTextBox1.TextLength > 0)
+            {
+                DialogResult overwriteResult = MessageBox.Show(
+                    this,
+                    "This will clear any trace edits. Are you sure?",
+                    "Grab Trace Line",
+                    MessageBoxButtons.YesNo,
+                    MessageBoxIcon.Warning);
+
+                if (overwriteResult != DialogResult.Yes)
+                {
+                    return;
+                }
+            }
+
+            richTextBox1.Text = selectedLine;
         }
 
         private async Task ScrollBothPanesAsync(int delta)
@@ -2115,7 +2152,7 @@ namespace ZXTL
             comboVersions.Enabled = false;
 
             comboModel.SelectedIndex = 2;
-
+            int a = listPairs.SelectedIndex; // Force the SelectedIndexChanged event to run and populate the dynamic register target combo box.
         }
     }
 }
