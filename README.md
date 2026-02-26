@@ -21,7 +21,9 @@ A tool has been written to encourage the use of the standard. As of version 0.3,
 
 This software is still in the testing phase and is offered under an open-source MIT license. Its development will continue in conjunction with Proposal.
 
-Download ZXTL tool to convert ZXTL traces between formats (Beta)
+![ZXTL03.jpg](https://github.com/ref-xx/ZXTL/blob/main/ZXTL03.jpg)
+
+Download ZXTL tool to convert ZXTL traces between formats (Beta). See releases.
 
 Requires .net 9.0 framework (ZXTL Tool will automatically ask to download when you start the exe):
 https://dotnet.microsoft.com/en-us/download/dotnet/thank-you/runtime-desktop-9.0.13-windows-x64-installer?cid=getdotnetcore
