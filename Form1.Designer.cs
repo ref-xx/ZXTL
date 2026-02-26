@@ -175,6 +175,15 @@
             btnFieldDown = new Button();
             btnFieldUp = new Button();
             listAvailableFields = new ListBox();
+            tabPage4 = new TabPage();
+            btnApplyMod = new Button();
+            radioButtonDec = new RadioButton();
+            radioButtonHex = new RadioButton();
+            label10 = new Label();
+            txtFieldModLen = new TextBox();
+            label9 = new Label();
+            txtResultKeyword = new TextBox();
+            txtFieldDefinition = new TextBox();
             chkConvertTrace = new CheckBox();
             txtFieldStart = new TextBox();
             richTemplate = new RichTextBox();
@@ -191,6 +200,7 @@
             listSingleRegs = new ListBox();
             richTextBox1 = new RichTextBox();
             btnSaveTrace = new Button();
+            chkFieldUseLength = new CheckBox();
             groupBoxPrimary.SuspendLayout();
             GroupFlagsPrimary.SuspendLayout();
             menuStrip1.SuspendLayout();
@@ -202,6 +212,7 @@
             tabPage1.SuspendLayout();
             tabPage2.SuspendLayout();
             tabPage3.SuspendLayout();
+            tabPage4.SuspendLayout();
             SuspendLayout();
             // 
             // groupBoxPrimary
@@ -1452,9 +1463,11 @@
             // 
             // tabOptions
             // 
+            tabOptions.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
             tabOptions.Controls.Add(tabPage1);
             tabOptions.Controls.Add(tabPage2);
             tabOptions.Controls.Add(tabPage3);
+            tabOptions.Controls.Add(tabPage4);
             tabOptions.Location = new Point(610, 84);
             tabOptions.Name = "tabOptions";
             tabOptions.SelectedIndex = 0;
@@ -1684,7 +1697,7 @@
             // 
             // btnFieldRemove
             // 
-            btnFieldRemove.Location = new Point(336, 62);
+            btnFieldRemove.Location = new Point(336, 65);
             btnFieldRemove.Name = "btnFieldRemove";
             btnFieldRemove.Size = new Size(102, 23);
             btnFieldRemove.TabIndex = 3;
@@ -1697,7 +1710,7 @@
             btnFieldDown.Name = "btnFieldDown";
             btnFieldDown.Size = new Size(102, 23);
             btnFieldDown.TabIndex = 2;
-            btnFieldDown.Text = "Move Down";
+            btnFieldDown.Text = "Down";
             btnFieldDown.UseVisualStyleBackColor = true;
             // 
             // btnFieldUp
@@ -1706,7 +1719,7 @@
             btnFieldUp.Name = "btnFieldUp";
             btnFieldUp.Size = new Size(102, 23);
             btnFieldUp.TabIndex = 1;
-            btnFieldUp.Text = "Move Up";
+            btnFieldUp.Text = "Up";
             btnFieldUp.UseVisualStyleBackColor = true;
             // 
             // listAvailableFields
@@ -1716,6 +1729,96 @@
             listAvailableFields.Name = "listAvailableFields";
             listAvailableFields.Size = new Size(327, 116);
             listAvailableFields.TabIndex = 0;
+            // 
+            // tabPage4
+            // 
+            tabPage4.Controls.Add(chkFieldUseLength);
+            tabPage4.Controls.Add(btnApplyMod);
+            tabPage4.Controls.Add(radioButtonDec);
+            tabPage4.Controls.Add(radioButtonHex);
+            tabPage4.Controls.Add(label10);
+            tabPage4.Controls.Add(label9);
+            tabPage4.Controls.Add(txtFieldDefinition);
+            tabPage4.Controls.Add(txtFieldModLen);
+            tabPage4.Controls.Add(txtResultKeyword);
+            tabPage4.Location = new Point(4, 25);
+            tabPage4.Name = "tabPage4";
+            tabPage4.Size = new Size(441, 133);
+            tabPage4.TabIndex = 3;
+            tabPage4.Text = "Modify Field";
+            tabPage4.UseVisualStyleBackColor = true;
+            // 
+            // btnApplyMod
+            // 
+            btnApplyMod.Location = new Point(311, 98);
+            btnApplyMod.Name = "btnApplyMod";
+            btnApplyMod.Size = new Size(116, 23);
+            btnApplyMod.TabIndex = 14;
+            btnApplyMod.Text = "Apply Mod";
+            btnApplyMod.UseVisualStyleBackColor = true;
+            // 
+            // radioButtonDec
+            // 
+            radioButtonDec.AutoSize = true;
+            radioButtonDec.Location = new Point(248, 37);
+            radioButtonDec.Name = "radioButtonDec";
+            radioButtonDec.Size = new Size(46, 20);
+            radioButtonDec.TabIndex = 6;
+            radioButtonDec.TabStop = true;
+            radioButtonDec.Text = "Dec";
+            radioButtonDec.UseVisualStyleBackColor = true;
+            // 
+            // radioButtonHex
+            // 
+            radioButtonHex.AutoSize = true;
+            radioButtonHex.Location = new Point(169, 37);
+            radioButtonHex.Name = "radioButtonHex";
+            radioButtonHex.Size = new Size(46, 20);
+            radioButtonHex.TabIndex = 5;
+            radioButtonHex.TabStop = true;
+            radioButtonHex.Text = "Hex";
+            radioButtonHex.UseVisualStyleBackColor = true;
+            // 
+            // label10
+            // 
+            label10.AutoSize = true;
+            label10.Location = new Point(24, 73);
+            label10.Name = "label10";
+            label10.Size = new Size(105, 16);
+            label10.TabIndex = 4;
+            label10.Text = "Change Length:";
+            // 
+            // txtFieldModLen
+            // 
+            txtFieldModLen.Location = new Point(169, 70);
+            txtFieldModLen.Name = "txtFieldModLen";
+            txtFieldModLen.Size = new Size(115, 23);
+            txtFieldModLen.TabIndex = 3;
+            // 
+            // label9
+            // 
+            label9.AutoSize = true;
+            label9.Location = new Point(17, 101);
+            label9.Name = "label9";
+            label9.Size = new Size(112, 16);
+            label9.TabIndex = 2;
+            label9.Text = "Result Keyword:";
+            // 
+            // txtResultKeyword
+            // 
+            txtResultKeyword.Location = new Point(169, 98);
+            txtResultKeyword.Name = "txtResultKeyword";
+            txtResultKeyword.ReadOnly = true;
+            txtResultKeyword.Size = new Size(115, 23);
+            txtResultKeyword.TabIndex = 1;
+            // 
+            // txtFieldDefinition
+            // 
+            txtFieldDefinition.Location = new Point(13, 7);
+            txtFieldDefinition.Name = "txtFieldDefinition";
+            txtFieldDefinition.ReadOnly = true;
+            txtFieldDefinition.Size = new Size(414, 23);
+            txtFieldDefinition.TabIndex = 0;
             // 
             // chkConvertTrace
             // 
@@ -1884,6 +1987,18 @@
             btnSaveTrace.Text = "Save Trace As...";
             btnSaveTrace.UseVisualStyleBackColor = true;
             // 
+            // chkFieldUseLength
+            // 
+            chkFieldUseLength.AutoSize = true;
+            chkFieldUseLength.Checked = true;
+            chkFieldUseLength.CheckState = CheckState.Checked;
+            chkFieldUseLength.Location = new Point(311, 72);
+            chkFieldUseLength.Name = "chkFieldUseLength";
+            chkFieldUseLength.Size = new Size(96, 20);
+            chkFieldUseLength.TabIndex = 20;
+            chkFieldUseLength.Text = "Use Length";
+            chkFieldUseLength.UseVisualStyleBackColor = true;
+            // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(7F, 16F);
@@ -1920,6 +2035,8 @@
             tabPage2.ResumeLayout(false);
             tabPage2.PerformLayout();
             tabPage3.ResumeLayout(false);
+            tabPage4.ResumeLayout(false);
+            tabPage4.PerformLayout();
             ResumeLayout(false);
             PerformLayout();
         }
@@ -2089,6 +2206,16 @@
         private Button btnFieldApply;
         private Button btnFieldRemove;
         private Button btnFieldDown;
+        private TabPage tabPage4;
+        private RadioButton radioButtonDec;
+        private RadioButton radioButtonHex;
+        private Label label10;
+        private TextBox txtFieldModLen;
+        private Label label9;
+        private TextBox txtResultKeyword;
+        private TextBox txtFieldDefinition;
+        private Button btnApplyMod;
+        private CheckBox chkFieldUseLength;
     }
 }
 

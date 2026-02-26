@@ -11,6 +11,7 @@ namespace ZXTL
         private readonly Color _registerDefaultForeColor;
         private readonly Color _registerChangedBackColor = SystemColors.Info;
         private readonly Color _registerDiffForeColor = Color.Red;
+        private readonly List<TemplateAvailableFieldEntry> _templateAvailableFields = new();
         private TraceLogData PrimaryLog => _primaryPane.LogData;
         private TraceLogData SecondaryLog => _secondaryPane.LogData;
 
@@ -231,6 +232,10 @@ namespace ZXTL
             listSingleRegs.DoubleClick += TemplateFieldSource_DoubleClick;
             listPairs.DoubleClick += TemplateFieldSource_DoubleClick;
             listKeywords.DoubleClick += TemplateFieldSource_DoubleClick;
+            btnFieldUp.Click += btnFieldUp_Click;
+            btnFieldDown.Click += btnFieldDown_Click;
+            btnFieldRemove.Click += btnFieldRemove_Click;
+            btnFieldApply.Click += btnFieldApply_Click;
         }
 
         private void btnGrabLine_Click(object? sender, EventArgs e)
@@ -274,26 +279,310 @@ namespace ZXTL
 
             if (!primaryLog.HasTemplateHeader || primaryLog.TemplateHeader is null)
             {
+                _templateAvailableFields.Clear();
+                RefreshAvailableFieldsListDisplay(-1);
                 return;
             }
 
+            _templateAvailableFields.Clear();
+            IReadOnlyList<TraceLogOrderFieldSpec> items = primaryLog.OrderDefinition.Items;
+            for (int i = 0; i < items.Count; i++)
+            {
+                _templateAvailableFields.Add(new TemplateAvailableFieldEntry(i, items[i]));
+            }
+
+            RefreshAvailableFieldsListDisplay(_templateAvailableFields.Count > 0 ? 0 : -1);
+
+            tabOptions.SelectedTab = tabPage3;
+        }
+
+        private void RefreshAvailableFieldsListDisplay(int selectedIndex)
+        {
             listAvailableFields.BeginUpdate();
             try
             {
                 listAvailableFields.Items.Clear();
 
-                IReadOnlyList<TraceLogOrderFieldSpec> items = primaryLog.OrderDefinition.Items;
-                for (int i = 0; i < items.Count; i++)
+                for (int i = 0; i < _templateAvailableFields.Count; i++)
                 {
-                    listAvailableFields.Items.Add(TraceLogOrderParser.Describe(items[i]));
+                    TemplateAvailableFieldEntry entry = _templateAvailableFields[i];
+                    string label = $"{entry.SourceIndex:00}: {TraceLogOrderParser.Describe(entry.Item)}";
+                    listAvailableFields.Items.Add(label);
+                }
+
+                if (selectedIndex >= 0 && selectedIndex < listAvailableFields.Items.Count)
+                {
+                    listAvailableFields.SelectedIndex = selectedIndex;
                 }
             }
             finally
             {
                 listAvailableFields.EndUpdate();
             }
+        }
 
-            tabOptions.SelectedTab = tabPage3;
+        private void btnFieldUp_Click(object? sender, EventArgs e)
+        {
+            if (!TryGetAvailableFieldSelection(out int selectedIndex))
+            {
+                ShowTemplateEditorError("Select a field in Available Fields first.");
+                return;
+            }
+
+            if (selectedIndex <= 0)
+            {
+                ApplyTracePreviewFromAvailableFields();
+                return;
+            }
+
+            (_templateAvailableFields[selectedIndex - 1], _templateAvailableFields[selectedIndex]) =
+                (_templateAvailableFields[selectedIndex], _templateAvailableFields[selectedIndex - 1]);
+
+            RefreshAvailableFieldsListDisplay(selectedIndex - 1);
+            ApplyTracePreviewFromAvailableFields();
+        }
+
+        private void btnFieldDown_Click(object? sender, EventArgs e)
+        {
+            if (!TryGetAvailableFieldSelection(out int selectedIndex))
+            {
+                ShowTemplateEditorError("Select a field in Available Fields first.");
+                return;
+            }
+
+            if (selectedIndex >= _templateAvailableFields.Count - 1)
+            {
+                ApplyTracePreviewFromAvailableFields();
+                return;
+            }
+
+            (_templateAvailableFields[selectedIndex], _templateAvailableFields[selectedIndex + 1]) =
+                (_templateAvailableFields[selectedIndex + 1], _templateAvailableFields[selectedIndex]);
+
+            RefreshAvailableFieldsListDisplay(selectedIndex + 1);
+            ApplyTracePreviewFromAvailableFields();
+        }
+
+        private void btnFieldRemove_Click(object? sender, EventArgs e)
+        {
+            if (!TryGetAvailableFieldSelection(out int selectedIndex))
+            {
+                ShowTemplateEditorError("Select a field in Available Fields first.");
+                return;
+            }
+
+            _templateAvailableFields.RemoveAt(selectedIndex);
+            int nextSelection = _templateAvailableFields.Count == 0
+                ? -1
+                : Math.Min(selectedIndex, _templateAvailableFields.Count - 1);
+
+            RefreshAvailableFieldsListDisplay(nextSelection);
+            ApplyTracePreviewFromAvailableFields();
+        }
+
+        private void btnFieldApply_Click(object? sender, EventArgs e)
+        {
+            if (_templateAvailableFields.Count == 0)
+            {
+                ShowTemplateEditorError("There are no available fields to build the template ORDER section.");
+                return;
+            }
+
+            richTemplate.Text = BuildFullTemplateFromEditorState();
+        }
+
+        private bool TryGetAvailableFieldSelection(out int selectedIndex)
+        {
+            selectedIndex = listAvailableFields.SelectedIndex;
+            return selectedIndex >= 0 &&
+                selectedIndex < _templateAvailableFields.Count;
+        }
+
+        private void ApplyTracePreviewFromAvailableFields()
+        {
+            if (_templateAvailableFields.Count == 0)
+            {
+                txtTracePreview.Text = string.Empty;
+                return;
+            }
+
+            if (!PrimaryLog.HasTemplateHeader || PrimaryLog.TemplateHeader is null)
+            {
+                ShowTemplateEditorError("Primary log is not a valid ZXTL trace log.");
+                return;
+            }
+
+            if (!TryGetTemplateEditorSourceTraceLine(out string sourceLine))
+            {
+                ShowTemplateEditorError("Grab a trace line first.");
+                return;
+            }
+
+            if (TryParseTracePreviewLineByOrder(
+                sourceLine,
+                PrimaryLog.OrderDefinition.Items,
+                PrimaryLog.Opts.IsTabbed,
+                out List<string> values,
+                out string? parseError))
+            {
+                txtTracePreview.Text = BuildReorderedTracePreviewText(values, PrimaryLog.Opts.IsTabbed);
+                return;
+            }
+
+            ShowTemplateEditorError($"Preview build failed: {parseError}");
+        }
+
+        private bool TryGetTemplateEditorSourceTraceLine(out string line)
+        {
+            line = richTextBox1.Text;
+
+            if (!string.IsNullOrWhiteSpace(line) &&
+                !string.Equals(line, "Press 'Grab Trace' to Start", StringComparison.Ordinal))
+            {
+                return true;
+            }
+
+            if (listBox1.SelectedItem is string selected && !string.IsNullOrWhiteSpace(selected))
+            {
+                if (IsHeaderDisplaySelection(_primaryPane, listBox1.SelectedIndex))
+                {
+                    line = string.Empty;
+                    return false;
+                }
+
+                line = selected;
+                return true;
+            }
+
+            line = string.Empty;
+            return false;
+        }
+
+        private string BuildReorderedTracePreviewText(IReadOnlyList<string> parsedValues, bool isTabbed)
+        {
+            string separator = isTabbed ? "\t" : " ";
+            StringBuilder sb = new();
+
+            for (int i = 0; i < _templateAvailableFields.Count; i++)
+            {
+                TemplateAvailableFieldEntry entry = _templateAvailableFields[i];
+                if (entry.SourceIndex < 0 || entry.SourceIndex >= parsedValues.Count)
+                {
+                    continue;
+                }
+
+                if (i > 0)
+                {
+                    sb.Append(separator);
+                }
+
+                sb.Append(FormatPreviewFieldValue(entry.Item, parsedValues[entry.SourceIndex]));
+            }
+
+            return sb.ToString();
+        }
+
+        private static string FormatPreviewFieldValue(TraceLogOrderFieldSpec item, string value)
+        {
+            string text = value ?? string.Empty;
+
+            if (item.FixedWidth is int width && width > 0)
+            {
+                if (text.Length > width)
+                {
+                    return text[..width];
+                }
+
+                return text.PadRight(width);
+            }
+
+            return text;
+        }
+
+        private string BuildFullTemplateFromEditorState()
+        {
+            string version = comboVersions.SelectedItem?.ToString() ?? "0003";
+            string emulatorName = (txtEmulatorName.Text ?? string.Empty).Trim();
+            string orderSection = BuildOrderSectionFromAvailableFields();
+            string optionsSection = BuildOptionsSectionFromEditorState();
+
+            return $"ZXTL V{version}, {emulatorName}, {orderSection}, {optionsSection}";
+        }
+
+        private string BuildOrderSectionFromAvailableFields()
+        {
+            if (_templateAvailableFields.Count == 0)
+            {
+                return string.Empty;
+            }
+
+            return string.Join(
+                " ",
+                _templateAvailableFields.Select(static entry => entry.Item.RawToken.Trim()));
+        }
+
+        private string BuildOptionsSectionFromEditorState()
+        {
+            List<string> tokens = new();
+
+            if (chkUseViewmem.Checked)
+            {
+                tokens.Add("VIEWMEM");
+            }
+
+            if (chkUseTabbed.Checked)
+            {
+                tokens.Add("TABBED");
+            }
+
+            if (chkUseJumps.Checked)
+            {
+                tokens.Add("ONLYJUMPS");
+            }
+
+            if (chkUseSlice.Checked)
+            {
+                tokens.Add("SLICE");
+            }
+
+            if (chkUseHex.Checked)
+            {
+                tokens.Add("HEX");
+            }
+
+            if (chkUseHexPrefix.Checked)
+            {
+                string prefix = comboPrefixes.Text?.Trim() ?? string.Empty;
+                if (prefix.Length > 0)
+                {
+                    tokens.Add($"PREFIXED={prefix}");
+                }
+            }
+
+            string model = comboModel.SelectedItem?.ToString() ?? comboModel.Text?.Trim() ?? string.Empty;
+            if (!string.IsNullOrWhiteSpace(model))
+            {
+                tokens.Add($"M={model.Trim()}");
+            }
+
+            string snapshotFile = txtSnapshotFile.Text?.Trim() ?? string.Empty;
+            if (!string.IsNullOrWhiteSpace(snapshotFile) &&
+                !string.Equals(snapshotFile, "Not Set.", StringComparison.OrdinalIgnoreCase))
+            {
+                tokens.Add($"S={QuoteOptionValueIfNeeded(snapshotFile)}");
+            }
+
+            return string.Join(" ", tokens);
+        }
+
+        private static string QuoteOptionValueIfNeeded(string value)
+        {
+            if (value.IndexOfAny([' ', '\t', ',']) >= 0)
+            {
+                return $"\"{value.Replace("\"", "")}\"";
+            }
+
+            return value;
         }
 
         private void richTextBox1_SelectionChanged(object? sender, EventArgs e)
@@ -2087,6 +2376,18 @@ namespace ZXTL
             }
 
             txtLog.AppendText(text);
+        }
+
+        private sealed class TemplateAvailableFieldEntry
+        {
+            public TemplateAvailableFieldEntry(int sourceIndex, TraceLogOrderFieldSpec item)
+            {
+                SourceIndex = sourceIndex;
+                Item = item;
+            }
+
+            public int SourceIndex { get; }
+            public TraceLogOrderFieldSpec Item { get; }
         }
 
         private sealed class TraceLogData
