@@ -13,6 +13,7 @@ namespace ZXTL
         private readonly Color _registerDiffForeColor = Color.Red;
         private readonly List<TemplateAvailableFieldEntry> _templateAvailableFields = new();
         private bool _suppressFieldModUiEvents;
+        private bool _suppressRegisterChangeHighlight;
         private TraceLogData PrimaryLog => _primaryPane.LogData;
         private TraceLogData SecondaryLog => _secondaryPane.LogData;
 
@@ -27,6 +28,7 @@ namespace ZXTL
             WireOptionalHeaderVisibilityCheckboxes();
             WirePaneSelectionHandlers();
             WireNavigationButtons();
+            WireViewModeRadioButtons();
             WireTemplateEditorButtons();
         }
 
@@ -221,9 +223,43 @@ namespace ZXTL
             btnPrevLine.Click += async (_, _) => await ScrollPaneAsync(_primaryPane, -1);
             btnNextLine2.Click += async (_, _) => await ScrollPaneAsync(_secondaryPane, +1);
             btnPrevline2.Click += async (_, _) => await ScrollPaneAsync(_secondaryPane, -1);
+            btnNextPage.Click += async (_, _) => await ScrollPanePageAsync(_primaryPane, +1);
+            btnPrevPage.Click += async (_, _) => await ScrollPanePageAsync(_primaryPane, -1);
 
             btnNextBoth.Click += async (_, _) => await ScrollBothPanesAsync(+1);
             btnPrevBoth.Click += async (_, _) => await ScrollBothPanesAsync(-1);
+
+            if (FindControlRecursive<Button>(this, "btnGotoLine") is Button btnGotoLine)
+            {
+                btnGotoLine.Click += async (_, _) => await GotoPrimaryLineFromTextAsync();
+            }
+        }
+
+        private void WireViewModeRadioButtons()
+        {
+            radioViewHex.CheckedChanged += (_, _) => OnRegisterViewModeChanged();
+            radioViewDec.CheckedChanged += (_, _) => OnRegisterViewModeChanged();
+            chkViewPaired.CheckedChanged += (_, _) => OnRegisterViewModeChanged();
+        }
+
+        private void OnRegisterViewModeChanged()
+        {
+            // CheckedChanged fires for both radio buttons during a switch.
+            if (!radioViewHex.Checked && !radioViewDec.Checked)
+            {
+                return;
+            }
+
+            _suppressRegisterChangeHighlight = true;
+            try
+            {
+                PopulateRegisterBoxes(_primaryPane);
+                PopulateRegisterBoxes(_secondaryPane);
+            }
+            finally
+            {
+                _suppressRegisterChangeHighlight = false;
+            }
         }
 
         private void WireTemplateEditorButtons()
@@ -238,6 +274,7 @@ namespace ZXTL
             btnFieldRemove.Click += btnFieldRemove_Click;
             btnFieldApply.Click += btnFieldApply_Click;
             btnApplyMod.Click += btnApplyMod_Click;
+            btnSaveTrace.Click += btnSaveTrace_Click;
             listAvailableFields.SelectedIndexChanged += listAvailableFields_SelectedIndexChanged;
             radioButtonHex.CheckedChanged += FieldModInputs_Changed;
             radioButtonDec.CheckedChanged += FieldModInputs_Changed;
@@ -251,7 +288,7 @@ namespace ZXTL
 
         private void btnGrabLine_Click(object? sender, EventArgs e)
         {
-            
+
 
             if (listBox1.SelectedItem is not string selectedLine)
             {
@@ -264,7 +301,7 @@ namespace ZXTL
                 return;
             }
 
-            if ((richTextBox1.TextLength > 0)&&(richTextBox1.Text != "Press 'Grab Trace' to Start"))
+            if ((richTextBox1.TextLength > 0) && (richTextBox1.Text != "Press 'Grab Trace' to Start"))
             {
                 DialogResult overwriteResult = MessageBox.Show(
                     this,
@@ -281,7 +318,7 @@ namespace ZXTL
             PopulateAvailableFieldsFromPrimaryZxtl();
 
             richTextBox1.Text = selectedLine;
-            richTemplate.Text = "ZXTL V" + (comboVersions.SelectedItem?.ToString() ?? "0003" ) + "," + txtEmulatorName.Text + ",";
+            richTemplate.Text = "ZXTL V" + (comboVersions.SelectedItem?.ToString() ?? "0003") + "," + txtEmulatorName.Text + ",";
             txtTracePreview.Text = "";
         }
 
@@ -575,6 +612,206 @@ namespace ZXTL
             richTemplate.Text = BuildFullTemplateFromEditorState();
         }
 
+        private async void btnSaveTrace_Click(object? sender, EventArgs e)
+        {
+            if (_primaryPane.Document is null)
+            {
+                ShowTemplateEditorError("Load a primary trace log first.");
+                return;
+            }
+
+            if (_templateAvailableFields.Count == 0)
+            {
+                ShowTemplateEditorError("There are no available fields to export.");
+                return;
+            }
+
+            string templateLine = richTemplate.Text;
+            if (string.IsNullOrWhiteSpace(templateLine))
+            {
+                ShowTemplateEditorError("Template line is empty. Build or edit the template first.");
+                return;
+            }
+
+            using SaveFileDialog dialog = new()
+            {
+                Title = "Save Converted Trace As",
+                Filter = "Trace Logs (*.log)|*.log|All Files (*.*)|*.*",
+                FileName = Path.GetFileNameWithoutExtension(_primaryPane.Document.FilePath) + ".converted.log",
+                OverwritePrompt = true
+            };
+
+            if (dialog.ShowDialog(this) != DialogResult.OK)
+            {
+                return;
+            }
+
+            ExportTraceSettings settings = CaptureExportTraceSettings(dialog.FileName, templateLine);
+            if (!settings.IsValid)
+            {
+                ShowTemplateEditorError(settings.ValidationError ?? "Export settings are invalid.");
+                return;
+            }
+
+            btnSaveTrace.Enabled = false;
+            string previousStatus = txtTracePreview.Text;
+            txtTracePreview.Text = $"0/{settings.TotalLineCount}";
+
+            try
+            {
+                Progress<TraceExportProgress> progress = new(p =>
+                {
+                    txtTracePreview.Text = $"{p.Processed}/{p.Total}";
+                });
+
+                await Task.Run(() => ExportTraceToFile(settings, progress));
+
+                txtTracePreview.Text = $"{settings.TotalLineCount}/{settings.TotalLineCount}";
+                MessageBox.Show(
+                    this,
+                    $"Converted trace saved to:{Environment.NewLine}{settings.OutputFilePath}",
+                    "Save Trace",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Information);
+            }
+            catch (Exception ex)
+            {
+                txtTracePreview.Text = previousStatus;
+                MessageBox.Show(
+                    this,
+                    ex.Message,
+                    "Save Trace",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error);
+            }
+            finally
+            {
+                btnSaveTrace.Enabled = true;
+            }
+        }
+
+        private ExportTraceSettings CaptureExportTraceSettings(string outputFilePath, string templateLine)
+        {
+            if (_primaryPane.Document is null)
+            {
+                return ExportTraceSettings.Invalid("Primary trace log is not loaded.");
+            }
+
+            if (!PrimaryLog.HasTemplateHeader || PrimaryLog.TemplateHeader is null)
+            {
+                return ExportTraceSettings.Invalid("Primary trace log must be a valid ZXTL file for conversion.");
+            }
+
+            if (_templateAvailableFields.Count == 0)
+            {
+                return ExportTraceSettings.Invalid("No available fields are configured.");
+            }
+
+            List<TemplateAvailableFieldEntry> outputFields = _templateAvailableFields
+                .Select(static entry => entry.WithItem(entry.Item))
+                .ToList();
+
+            List<TraceLogOrderFieldSpec> sourceOrderItems = PrimaryLog.OrderDefinition.Items
+                .Select(static item => CloneFieldSpec(item))
+                .ToList();
+
+            int sourceDataStartLine = PrimaryLog.HasTemplateHeader ? 2 : 0;
+
+            int totalLineCount = _primaryPane.Document.IsLineIndexComplete
+                ? Math.Max(0, _primaryPane.Document.IndexedLineCount - sourceDataStartLine)
+                : CountTraceDataLines(_primaryPane.Document.FilePath, sourceDataStartLine);
+
+            return ExportTraceSettings.Valid(
+                outputFilePath: outputFilePath,
+                templateLine: templateLine,
+                sourceFilePath: _primaryPane.Document.FilePath,
+                sourceOrderItems: sourceOrderItems,
+                sourceIsTabbed: PrimaryLog.Opts.IsTabbed,
+                sourceDataStartLine: sourceDataStartLine,
+                outputFields: outputFields,
+                outputIsTabbed: chkUseTabbed.Checked,
+                outputHexPrefixEnabled: chkUseHexPrefix.Checked,
+                outputHexPrefix: comboPrefixes.Text?.Trim() ?? string.Empty,
+                totalLineCount: totalLineCount);
+        }
+
+        private static int CountTraceDataLines(string filePath, int sourceDataStartLine)
+        {
+            int total = 0;
+            int absoluteLineIndex = 0;
+
+            foreach (string _ in File.ReadLines(filePath))
+            {
+                if (absoluteLineIndex >= sourceDataStartLine)
+                {
+                    total++;
+                }
+
+                absoluteLineIndex++;
+            }
+
+            return total;
+        }
+
+        private static void ExportTraceToFile(ExportTraceSettings settings, IProgress<TraceExportProgress>? progress)
+        {
+            if (!settings.IsValid)
+            {
+                throw new InvalidOperationException(settings.ValidationError ?? "Invalid export settings.");
+            }
+
+            Directory.CreateDirectory(Path.GetDirectoryName(settings.OutputFilePath) ?? ".");
+
+            using FileStream stream = new(
+                settings.OutputFilePath,
+                FileMode.Create,
+                FileAccess.Write,
+                FileShare.None,
+                1024 * 1024,
+                FileOptions.SequentialScan);
+
+            using StreamWriter writer = new(stream, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false), 1024 * 1024);
+
+            writer.WriteLine(settings.TemplateLine);
+            writer.WriteLine();
+
+            int processed = 0;
+            int absoluteLineIndex = 0;
+
+            foreach (string sourceLine in File.ReadLines(settings.SourceFilePath))
+            {
+                if (absoluteLineIndex++ < settings.SourceDataStartLine)
+                {
+                    continue;
+                }
+
+                if (!TryBuildConvertedTraceLine(
+                    sourceLine,
+                    settings.SourceOrderItems,
+                    settings.SourceIsTabbed,
+                    settings.OutputFields,
+                    settings.OutputIsTabbed,
+                    settings.OutputHexPrefixEnabled,
+                    settings.OutputHexPrefix,
+                    out string convertedLine,
+                    out string? error))
+                {
+                    int sourceLineNumber = absoluteLineIndex;
+                    throw new InvalidOperationException($"Failed to convert source line {sourceLineNumber}: {error}");
+                }
+
+                writer.WriteLine(convertedLine);
+
+                processed++;
+                if ((processed % 100) == 0 || processed == settings.TotalLineCount)
+                {
+                    progress?.Report(new TraceExportProgress(processed, settings.TotalLineCount));
+                }
+            }
+
+            progress?.Report(new TraceExportProgress(processed, settings.TotalLineCount));
+        }
+
         private bool TryGetAvailableFieldSelection(out int selectedIndex)
         {
             selectedIndex = listAvailableFields.SelectedIndex;
@@ -609,7 +846,12 @@ namespace ZXTL
                 out List<string> values,
                 out string? parseError))
             {
-                txtTracePreview.Text = BuildReorderedTracePreviewText(values, PrimaryLog.Opts.IsTabbed);
+                txtTracePreview.Text = BuildReorderedTracePreviewText(
+                    values,
+                    chkUseTabbed.Checked,
+                    _templateAvailableFields,
+                    chkUseHexPrefix.Checked,
+                    comboPrefixes.Text?.Trim() ?? string.Empty);
                 return;
             }
 
@@ -642,14 +884,19 @@ namespace ZXTL
             return false;
         }
 
-        private string BuildReorderedTracePreviewText(IReadOnlyList<string> parsedValues, bool isTabbed)
+        private static string BuildReorderedTracePreviewText(
+            IReadOnlyList<string> parsedValues,
+            bool outputIsTabbed,
+            IReadOnlyList<TemplateAvailableFieldEntry> fields,
+            bool outputHexPrefixEnabled,
+            string outputHexPrefix)
         {
-            string separator = isTabbed ? "\t" : " ";
+            string separator = outputIsTabbed ? "\t" : " ";
             StringBuilder sb = new();
 
-            for (int i = 0; i < _templateAvailableFields.Count; i++)
+            for (int i = 0; i < fields.Count; i++)
             {
-                TemplateAvailableFieldEntry entry = _templateAvailableFields[i];
+                TemplateAvailableFieldEntry entry = fields[i];
                 if (entry.SourceIndex < 0 || entry.SourceIndex >= parsedValues.Count)
                 {
                     continue;
@@ -660,15 +907,60 @@ namespace ZXTL
                     sb.Append(separator);
                 }
 
-                sb.Append(FormatPreviewFieldValue(entry.Item, parsedValues[entry.SourceIndex]));
+                sb.Append(FormatPreviewFieldValue(
+                    entry.Item,
+                    parsedValues[entry.SourceIndex],
+                    outputHexPrefixEnabled,
+                    outputHexPrefix));
             }
 
             return sb.ToString();
         }
 
-        private string FormatPreviewFieldValue(TraceLogOrderFieldSpec item, string value)
+        private static bool TryBuildConvertedTraceLine(
+            string sourceLine,
+            IReadOnlyList<TraceLogOrderFieldSpec> sourceOrderItems,
+            bool sourceIsTabbed,
+            IReadOnlyList<TemplateAvailableFieldEntry> outputFields,
+            bool outputIsTabbed,
+            bool outputHexPrefixEnabled,
+            string outputHexPrefix,
+            out string convertedLine,
+            out string? error)
         {
-            string text = TryReformatPreviewFieldValue(item, value ?? string.Empty);
+            convertedLine = string.Empty;
+
+            if (!TryParseTracePreviewLineByOrder(
+                sourceLine,
+                sourceOrderItems,
+                sourceIsTabbed,
+                out List<string> values,
+                out error))
+            {
+                return false;
+            }
+
+            convertedLine = BuildReorderedTracePreviewText(
+                values,
+                outputIsTabbed,
+                outputFields,
+                outputHexPrefixEnabled,
+                outputHexPrefix);
+            error = null;
+            return true;
+        }
+
+        private static string FormatPreviewFieldValue(
+            TraceLogOrderFieldSpec item,
+            string value,
+            bool outputHexPrefixEnabled,
+            string outputHexPrefix)
+        {
+            string text = TryReformatPreviewFieldValue(
+                item,
+                value ?? string.Empty,
+                outputHexPrefixEnabled,
+                outputHexPrefix);
 
             if (item.FixedWidth is int width && width > 0)
             {
@@ -683,7 +975,11 @@ namespace ZXTL
             return text;
         }
 
-        private string TryReformatPreviewFieldValue(TraceLogOrderFieldSpec item, string rawValue)
+        private static string TryReformatPreviewFieldValue(
+            TraceLogOrderFieldSpec item,
+            string rawValue,
+            bool outputHexPrefixEnabled,
+            string outputHexPrefix)
         {
             if (item.Kind != TraceLogOrderItemKind.FormatDirective)
             {
@@ -698,13 +994,25 @@ namespace ZXTL
 
             return item.FormatTarget switch
             {
-                TraceLogOrderFormatTarget.Registers => ReformatRegisterDirectiveValue(rawValue, item.ValueFormat),
-                TraceLogOrderFormatTarget.DollarValue => ReformatScalarDirectiveValue(rawValue, item.ValueFormat),
+                TraceLogOrderFormatTarget.Registers => ReformatRegisterDirectiveValue(
+                    rawValue,
+                    item.ValueFormat,
+                    outputHexPrefixEnabled,
+                    outputHexPrefix),
+                TraceLogOrderFormatTarget.DollarValue => ReformatScalarDirectiveValue(
+                    rawValue,
+                    item.ValueFormat,
+                    outputHexPrefixEnabled,
+                    outputHexPrefix),
                 _ => rawValue
             };
         }
 
-        private string ReformatRegisterDirectiveValue(string rawValue, TraceLogOrderValueFormat format)
+        private static string ReformatRegisterDirectiveValue(
+            string rawValue,
+            TraceLogOrderValueFormat format,
+            bool outputHexPrefixEnabled,
+            string outputHexPrefix)
         {
             int eqIndex = rawValue.IndexOf('=');
             if (eqIndex <= 0 || eqIndex >= rawValue.Length - 1)
@@ -720,20 +1028,24 @@ namespace ZXTL
                 return rawValue;
             }
 
-            return $"{registerName}={FormatPreviewNumber(numericValue, format)}";
+            return $"{registerName}={FormatPreviewNumber(numericValue, format, outputHexPrefixEnabled, outputHexPrefix)}";
         }
 
-        private string ReformatScalarDirectiveValue(string rawValue, TraceLogOrderValueFormat format)
+        private static string ReformatScalarDirectiveValue(
+            string rawValue,
+            TraceLogOrderValueFormat format,
+            bool outputHexPrefixEnabled,
+            string outputHexPrefix)
         {
             if (!TryParsePreviewNumber(rawValue, out ulong numericValue))
             {
                 return rawValue;
             }
 
-            return FormatPreviewNumber(numericValue, format);
+            return FormatPreviewNumber(numericValue, format, outputHexPrefixEnabled, outputHexPrefix);
         }
 
-        private bool TryParsePreviewNumber(string valueText, out ulong numericValue)
+        private static bool TryParsePreviewNumber(string valueText, out ulong numericValue)
         {
             numericValue = 0;
 
@@ -767,14 +1079,18 @@ namespace ZXTL
             return ulong.TryParse(text, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out numericValue);
         }
 
-        private string FormatPreviewNumber(ulong value, TraceLogOrderValueFormat format)
+        private static string FormatPreviewNumber(
+            ulong value,
+            TraceLogOrderValueFormat format,
+            bool outputHexPrefixEnabled,
+            string outputHexPrefix)
         {
             if (format == TraceLogOrderValueFormat.Decimal)
             {
                 return value.ToString(CultureInfo.InvariantCulture);
             }
 
-            string prefix = chkUseHexPrefix.Checked ? (comboPrefixes.Text?.Trim() ?? string.Empty) : string.Empty;
+            string prefix = outputHexPrefixEnabled ? outputHexPrefix : string.Empty;
             return $"{prefix}{value:X}";
         }
 
@@ -827,6 +1143,64 @@ namespace ZXTL
             };
 
             return $"{left}={right}";
+        }
+
+        private readonly record struct TraceExportProgress(int Processed, int Total);
+
+        private sealed class ExportTraceSettings
+        {
+            private ExportTraceSettings()
+            {
+            }
+
+            public bool IsValid { get; private init; }
+            public string? ValidationError { get; private init; }
+            public string OutputFilePath { get; private init; } = string.Empty;
+            public string TemplateLine { get; private init; } = string.Empty;
+            public string SourceFilePath { get; private init; } = string.Empty;
+            public IReadOnlyList<TraceLogOrderFieldSpec> SourceOrderItems { get; private init; } = Array.Empty<TraceLogOrderFieldSpec>();
+            public bool SourceIsTabbed { get; private init; }
+            public int SourceDataStartLine { get; private init; }
+            public IReadOnlyList<TemplateAvailableFieldEntry> OutputFields { get; private init; } = Array.Empty<TemplateAvailableFieldEntry>();
+            public bool OutputIsTabbed { get; private init; }
+            public bool OutputHexPrefixEnabled { get; private init; }
+            public string OutputHexPrefix { get; private init; } = string.Empty;
+            public int TotalLineCount { get; private init; }
+
+            public static ExportTraceSettings Invalid(string error) =>
+                new()
+                {
+                    IsValid = false,
+                    ValidationError = error
+                };
+
+            public static ExportTraceSettings Valid(
+                string outputFilePath,
+                string templateLine,
+                string sourceFilePath,
+                IReadOnlyList<TraceLogOrderFieldSpec> sourceOrderItems,
+                bool sourceIsTabbed,
+                int sourceDataStartLine,
+                IReadOnlyList<TemplateAvailableFieldEntry> outputFields,
+                bool outputIsTabbed,
+                bool outputHexPrefixEnabled,
+                string outputHexPrefix,
+                int totalLineCount) =>
+                new()
+                {
+                    IsValid = true,
+                    OutputFilePath = outputFilePath,
+                    TemplateLine = templateLine,
+                    SourceFilePath = sourceFilePath,
+                    SourceOrderItems = sourceOrderItems,
+                    SourceIsTabbed = sourceIsTabbed,
+                    SourceDataStartLine = sourceDataStartLine,
+                    OutputFields = outputFields,
+                    OutputIsTabbed = outputIsTabbed,
+                    OutputHexPrefixEnabled = outputHexPrefixEnabled,
+                    OutputHexPrefix = outputHexPrefix,
+                    TotalLineCount = totalLineCount
+                };
         }
 
         private string BuildFullTemplateFromEditorState()
@@ -1117,6 +1491,59 @@ namespace ZXTL
             await RefreshPaneViewportAsync(pane);
         }
 
+        private async Task ScrollPanePageAsync(LogPaneState pane, int direction)
+        {
+            if (pane.Document is null)
+            {
+                return;
+            }
+
+            int step = Math.Max(1, GetTraceViewportCapacity(pane));
+            pane.VisibleStartLine += direction * step;
+            await RefreshPaneViewportAsync(pane);
+        }
+
+        private async Task GotoPrimaryLineFromTextAsync()
+        {
+            if (_primaryPane.Document is null)
+            {
+                return;
+            }
+
+            if (!int.TryParse(txtCurrentLine.Text.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int oneBasedLine))
+            {
+                return;
+            }
+
+            if (oneBasedLine < 1)
+            {
+                oneBasedLine = 1;
+            }
+
+            int absoluteLineIndex = oneBasedLine - 1;
+            int dataStartAbsoluteLine = _primaryPane.LogData.HasTemplateHeader ? 2 : 0;
+            int targetTraceIndex = absoluteLineIndex - dataStartAbsoluteLine;
+
+            if (targetTraceIndex < 0)
+            {
+                targetTraceIndex = 0;
+            }
+
+            await GotoPaneTraceIndexAsync(_primaryPane, targetTraceIndex);
+
+            if (chkGotoBoth.Checked && _secondaryPane.Document is not null)
+            {
+                await GotoPaneTraceIndexAsync(_secondaryPane, targetTraceIndex);
+            }
+        }
+
+        private async Task GotoPaneTraceIndexAsync(LogPaneState pane, int targetTraceIndex)
+        {
+            int centerOffset = GetTraceViewportCapacity(pane) / 2;
+            pane.VisibleStartLine = Math.Max(0, targetTraceIndex - centerOffset);
+            await RefreshPaneViewportAsync(pane);
+        }
+
         private async Task RefreshPaneViewportAsync(LogPaneState pane)
         {
             TraceLogDocument? document = pane.Document;
@@ -1127,15 +1554,10 @@ namespace ZXTL
             }
 
             int loadVersion = pane.LoadVersion;
-            int totalDisplayCapacity = CalculatePreviewLineCount(pane.ListBox);
-
+            int traceCapacity = GetTraceViewportCapacity(pane);
             bool isZxtl = pane.LogData.HasTemplateHeader;
-            bool showHeader = isZxtl &&
-                !string.IsNullOrEmpty(pane.LogData.HeaderLine) &&
-                pane.HeaderVisibilityCheckBox?.Checked != true;
-
+            bool showHeader = ShouldShowPaneHeaderLine(pane);
             int fixedHeaderCount = showHeader ? 1 : 0;
-            int traceCapacity = Math.Max(1, totalDisplayCapacity - fixedHeaderCount);
             int dataStartAbsoluteLine = isZxtl ? 2 : 0;
 
             IReadOnlyList<string> traceLines;
@@ -1189,6 +1611,20 @@ namespace ZXTL
                 pane.ListBox.ClearSelected();
                 SetCurrentLineText(pane, null);
             }
+        }
+
+        private int GetTraceViewportCapacity(LogPaneState pane)
+        {
+            int totalDisplayCapacity = CalculatePreviewLineCount(pane.ListBox);
+            int fixedHeaderCount = ShouldShowPaneHeaderLine(pane) ? 1 : 0;
+            return Math.Max(1, totalDisplayCapacity - fixedHeaderCount);
+        }
+
+        private static bool ShouldShowPaneHeaderLine(LogPaneState pane)
+        {
+            return pane.LogData.HasTemplateHeader &&
+                !string.IsNullOrEmpty(pane.LogData.HeaderLine) &&
+                pane.HeaderVisibilityCheckBox?.Checked != true;
         }
 
         private static int ClampVisibleStart(int requestedStart, int totalTraceLines, int traceCapacity)
@@ -1542,41 +1978,41 @@ namespace ZXTL
 
             if (isPrimary)
             {
-                SetRegisterTextBox(txtPC1, FormatUInt16(r.PC, logData));
-                SetRegisterTextBox(txtSP1, FormatUInt16(r.SP, logData));
-                SetRegisterTextBox(txtAF1, FormatUInt16(af, logData));
-                SetRegisterTextBox(txtBC1, FormatUInt16(bc, logData));
-                SetRegisterTextBox(txtDE1, FormatUInt16(de, logData));
-                SetRegisterTextBox(txtHL1, FormatUInt16(hl, logData));
-                SetRegisterTextBox(txtIX1, FormatUInt16(r.IX, logData));
-                SetRegisterTextBox(txtIY1, FormatUInt16(r.IY, logData));
-                SetRegisterTextBox(txtIR1, FormatUInt16(r.IR, logData));
+                SetRegisterTextBox(txtPC1, FormatWordForRegisterView(r.PC, logData, forcePaired: true));
+                SetRegisterTextBox(txtSP1, FormatWordForRegisterView(r.SP, logData, forcePaired: true));
+                SetRegisterTextBox(txtAF1, FormatWordForRegisterView(af, logData));
+                SetRegisterTextBox(txtBC1, FormatWordForRegisterView(bc, logData));
+                SetRegisterTextBox(txtDE1, FormatWordForRegisterView(de, logData));
+                SetRegisterTextBox(txtHL1, FormatWordForRegisterView(hl, logData));
+                SetRegisterTextBox(txtIX1, FormatWordForRegisterView(r.IX, logData));
+                SetRegisterTextBox(txtIY1, FormatWordForRegisterView(r.IY, logData));
+                SetRegisterTextBox(txtIR1, FormatWordForRegisterView(r.IR, logData));
                 SetRegisterTextBox(txtIM1, FormatByte(r.IM, logData));
-                SetRegisterTextBox(txtAFPrime1, FormatUInt16(r.AFx, logData));
-                SetRegisterTextBox(txtBCPrime1, FormatUInt16(r.BCx, logData));
-                SetRegisterTextBox(txtDEPrime1, FormatUInt16(r.DEx, logData));
-                SetRegisterTextBox(txtHLPrime1, FormatUInt16(r.HLx, logData));
-                SetRegisterTextBox(txtWZ1, FormatUInt16(r.WZ, logData));
+                SetRegisterTextBox(txtAFPrime1, FormatWordForRegisterView(r.AFx, logData));
+                SetRegisterTextBox(txtBCPrime1, FormatWordForRegisterView(r.BCx, logData));
+                SetRegisterTextBox(txtDEPrime1, FormatWordForRegisterView(r.DEx, logData));
+                SetRegisterTextBox(txtHLPrime1, FormatWordForRegisterView(r.HLx, logData));
+                SetRegisterTextBox(txtWZ1, FormatWordForRegisterView(r.WZ, logData, forcePaired: true));
                 SetRegisterTextBox(txtPG1, FormatByte(logData.SelectedLine.Port7FFD, logData));
                 SetFlagCheckboxesPrimary(fValue);
             }
             else
             {
-                SetRegisterTextBox(txtPC2, FormatUInt16(r.PC, logData));
-                SetRegisterTextBox(txtSP2, FormatUInt16(r.SP, logData));
-                SetRegisterTextBox(txtAF2, FormatUInt16(af, logData));
-                SetRegisterTextBox(txtBC2, FormatUInt16(bc, logData));
-                SetRegisterTextBox(txtDE2, FormatUInt16(de, logData));
-                SetRegisterTextBox(txtHL2, FormatUInt16(hl, logData));
-                SetRegisterTextBox(txtIX2, FormatUInt16(r.IX, logData));
-                SetRegisterTextBox(txtIY2, FormatUInt16(r.IY, logData));
-                SetRegisterTextBox(txtIR2, FormatUInt16(r.IR, logData));
+                SetRegisterTextBox(txtPC2, FormatWordForRegisterView(r.PC, logData, forcePaired: true));
+                SetRegisterTextBox(txtSP2, FormatWordForRegisterView(r.SP, logData, forcePaired: true));
+                SetRegisterTextBox(txtAF2, FormatWordForRegisterView(af, logData));
+                SetRegisterTextBox(txtBC2, FormatWordForRegisterView(bc, logData));
+                SetRegisterTextBox(txtDE2, FormatWordForRegisterView(de, logData));
+                SetRegisterTextBox(txtHL2, FormatWordForRegisterView(hl, logData));
+                SetRegisterTextBox(txtIX2, FormatWordForRegisterView(r.IX, logData));
+                SetRegisterTextBox(txtIY2, FormatWordForRegisterView(r.IY, logData));
+                SetRegisterTextBox(txtIR2, FormatWordForRegisterView(r.IR, logData));
                 SetRegisterTextBox(txtIM2, FormatByte(r.IM, logData));
-                SetRegisterTextBox(txtAFPrime2, FormatUInt16(r.AFx, logData));
-                SetRegisterTextBox(txtBCPrime2, FormatUInt16(r.BCx, logData));
-                SetRegisterTextBox(txtDEPrime2, FormatUInt16(r.DEx, logData));
-                SetRegisterTextBox(txtHLPrime2, FormatUInt16(r.HLx, logData));
-                SetRegisterTextBox(txtWZ2, FormatUInt16(r.WZ, logData));
+                SetRegisterTextBox(txtAFPrime2, FormatWordForRegisterView(r.AFx, logData));
+                SetRegisterTextBox(txtBCPrime2, FormatWordForRegisterView(r.BCx, logData));
+                SetRegisterTextBox(txtDEPrime2, FormatWordForRegisterView(r.DEx, logData));
+                SetRegisterTextBox(txtHLPrime2, FormatWordForRegisterView(r.HLx, logData));
+                SetRegisterTextBox(txtWZ2, FormatWordForRegisterView(r.WZ, logData, forcePaired: true));
                 SetRegisterTextBox(txtPG2, FormatByte(logData.SelectedLine.Port7FFD, logData));
                 SetFlagCheckboxesSecondary(fValue);
             }
@@ -1603,6 +2039,12 @@ namespace ZXTL
         {
             bool changed = !string.Equals(textBox.Text, text, StringComparison.Ordinal);
             textBox.Text = text;
+            if (_suppressRegisterChangeHighlight)
+            {
+                textBox.BackColor = _registerDefaultBackColor;
+                return;
+            }
+
             textBox.BackColor = changed ? _registerChangedBackColor : _registerDefaultBackColor;
         }
 
@@ -1675,14 +2117,52 @@ namespace ZXTL
             chkC.Checked = hasValue && (flags & 0x01) != 0;
         }
 
-        private static string FormatUInt16(ushort? value, TraceLogData logData)
+        private bool IsRegisterViewHex()
+        {
+            if (radioViewHex.Checked)
+            {
+                return true;
+            }
+
+            if (radioViewDec.Checked)
+            {
+                return false;
+            }
+
+            // Fallback if designer default is not set yet.
+            return true;
+        }
+
+        private bool IsRegisterViewPaired()
+        {
+            return chkViewPaired.Checked;
+        }
+
+        private string FormatWordForRegisterView(ushort? value, TraceLogData logData, bool forcePaired = false)
         {
             if (value is null)
             {
                 return string.Empty;
             }
 
-            if (logData.Opts.Hex)
+            if (forcePaired || IsRegisterViewPaired())
+            {
+                return FormatUInt16(value, logData);
+            }
+
+            byte hi = (byte)((value.Value >> 8) & 0xFF);
+            byte lo = (byte)(value.Value & 0xFF);
+            return $"{FormatByte(hi, logData)} {FormatByte(lo, logData)}";
+        }
+
+        private string FormatUInt16(ushort? value, TraceLogData logData)
+        {
+            if (value is null)
+            {
+                return string.Empty;
+            }
+
+            if (IsRegisterViewHex())
             {
                 string prefix = logData.Opts.HexPrefix ?? string.Empty;
                 return $"{prefix}{value.Value:X4}";
@@ -1691,14 +2171,14 @@ namespace ZXTL
             return value.Value.ToString(CultureInfo.InvariantCulture);
         }
 
-        private static string FormatByte(byte? value, TraceLogData logData)
+        private string FormatByte(byte? value, TraceLogData logData)
         {
             if (value is null)
             {
                 return string.Empty;
             }
 
-            if (logData.Opts.Hex)
+            if (IsRegisterViewHex())
             {
                 string prefix = logData.Opts.HexPrefix ?? string.Empty;
                 return $"{prefix}{value.Value:X2}";
@@ -2979,6 +3459,7 @@ namespace ZXTL
                 utilitiesToolStripMenuItem.Text = "Hide Utilities";
                 groupTemplateEditor.Width = GroupUtilities.Left - 20;
                 groupBoxPrimary.Width = GroupUtilities.Left - 20;
+                groupBoxSecondary.Width= groupBoxPrimary.Width;
                 groupTemplateEditor.Width = GroupUtilities.Left - 20;
                 utilitiesToolStripMenuItem.Checked = true;
             }
@@ -2989,6 +3470,7 @@ namespace ZXTL
                 groupTemplateEditor.Width = Form1.ActiveForm.ClientSize.Width - 20;
                 groupBoxPrimary.Width = Form1.ActiveForm.ClientSize.Width - 20;
                 groupTemplateEditor.Width = Form1.ActiveForm.ClientSize.Width - 20;
+                groupBoxSecondary.Width = groupBoxPrimary.Width;
             }
         }
 
@@ -3016,6 +3498,15 @@ namespace ZXTL
 
             comboModel.SelectedIndex = 2;
             int a = listPairs.SelectedIndex; // Force the SelectedIndexChanged event to run and populate the dynamic register target combo box.
+        }
+
+        private void Form1_Resize(object sender, EventArgs e)
+        {
+            groupBoxPrimary.Height = (Form1.ActiveForm.ClientSize.Height / 2);
+            groupBoxSecondary.Height = groupBoxPrimary.Height-60;
+            groupBoxSecondary.Top = groupBoxPrimary.Height + 30;
+            groupTemplateEditor.Top= groupBoxPrimary.Height + 30;
+            groupTemplateEditor.Height = groupBoxSecondary.Height;
         }
     }
 }

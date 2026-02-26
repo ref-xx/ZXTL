@@ -29,6 +29,12 @@
         private void InitializeComponent()
         {
             groupBoxPrimary = new GroupBox();
+            btnGotoLine = new Button();
+            btnPrevPage = new Button();
+            btnNextPage = new Button();
+            chkViewPaired = new CheckBox();
+            radioViewDec = new RadioButton();
+            radioViewHex = new RadioButton();
             txtCurrentLine = new TextBox();
             label1 = new Label();
             splitter1 = new Splitter();
@@ -86,8 +92,6 @@
             savePrimaryLogAsToolStripMenuItem = new ToolStripMenuItem();
             saveDiffToolStripMenuItem = new ToolStripMenuItem();
             exitToolStripMenuItem = new ToolStripMenuItem();
-            viewToolStripMenuItem = new ToolStripMenuItem();
-            asHexToolStripMenuItem = new ToolStripMenuItem();
             toolsToolStripMenuItem = new ToolStripMenuItem();
             templateEditorToolStripMenuItem = new ToolStripMenuItem();
             compareLogsToolStripMenuItem = new ToolStripMenuItem();
@@ -150,6 +154,7 @@
             chkVerboseDebug = new CheckBox();
             txtLog = new TextBox();
             groupTemplateEditor = new GroupBox();
+            btnFieldApply = new Button();
             tabOptions = new TabControl();
             tabPage1 = new TabPage();
             chkUseViewmem = new CheckBox();
@@ -170,7 +175,6 @@
             btnSelectSnapshot = new Button();
             label8 = new Label();
             tabPage3 = new TabPage();
-            btnFieldApply = new Button();
             btnFieldRemove = new Button();
             btnFieldDown = new Button();
             btnFieldUp = new Button();
@@ -201,6 +205,7 @@
             listSingleRegs = new ListBox();
             richTextBox1 = new RichTextBox();
             btnSaveTrace = new Button();
+            chkGotoBoth = new CheckBox();
             groupBoxPrimary.SuspendLayout();
             GroupFlagsPrimary.SuspendLayout();
             menuStrip1.SuspendLayout();
@@ -218,6 +223,13 @@
             // groupBoxPrimary
             // 
             groupBoxPrimary.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
+            groupBoxPrimary.Controls.Add(chkGotoBoth);
+            groupBoxPrimary.Controls.Add(btnGotoLine);
+            groupBoxPrimary.Controls.Add(btnPrevPage);
+            groupBoxPrimary.Controls.Add(btnNextPage);
+            groupBoxPrimary.Controls.Add(chkViewPaired);
+            groupBoxPrimary.Controls.Add(radioViewDec);
+            groupBoxPrimary.Controls.Add(radioViewHex);
             groupBoxPrimary.Controls.Add(txtCurrentLine);
             groupBoxPrimary.Controls.Add(label1);
             groupBoxPrimary.Controls.Add(splitter1);
@@ -260,12 +272,79 @@
             groupBoxPrimary.Controls.Add(txtPC1);
             groupBoxPrimary.Controls.Add(lblPC1);
             groupBoxPrimary.Controls.Add(chkPrimaryHeader);
-            groupBoxPrimary.Location = new Point(12, 27);
+            groupBoxPrimary.Location = new Point(12, 24);
             groupBoxPrimary.Name = "groupBoxPrimary";
             groupBoxPrimary.Size = new Size(1069, 317);
             groupBoxPrimary.TabIndex = 0;
             groupBoxPrimary.TabStop = false;
             groupBoxPrimary.Text = "Primary Log";
+            // 
+            // btnGotoLine
+            // 
+            btnGotoLine.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
+            btnGotoLine.Location = new Point(305, 282);
+            btnGotoLine.Name = "btnGotoLine";
+            btnGotoLine.Size = new Size(72, 23);
+            btnGotoLine.TabIndex = 49;
+            btnGotoLine.Text = "Go to";
+            btnGotoLine.UseVisualStyleBackColor = true;
+            // 
+            // btnPrevPage
+            // 
+            btnPrevPage.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
+            btnPrevPage.Location = new Point(674, 253);
+            btnPrevPage.Name = "btnPrevPage";
+            btnPrevPage.Size = new Size(103, 23);
+            btnPrevPage.TabIndex = 48;
+            btnPrevPage.Text = "< Page";
+            btnPrevPage.UseVisualStyleBackColor = true;
+            // 
+            // btnNextPage
+            // 
+            btnNextPage.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
+            btnNextPage.Location = new Point(783, 253);
+            btnNextPage.Name = "btnNextPage";
+            btnNextPage.Size = new Size(103, 23);
+            btnNextPage.TabIndex = 47;
+            btnNextPage.Text = "Page >";
+            btnNextPage.UseVisualStyleBackColor = true;
+            // 
+            // chkViewPaired
+            // 
+            chkViewPaired.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
+            chkViewPaired.AutoSize = true;
+            chkViewPaired.Checked = true;
+            chkViewPaired.CheckState = CheckState.Checked;
+            chkViewPaired.Location = new Point(326, 256);
+            chkViewPaired.Name = "chkViewPaired";
+            chkViewPaired.Size = new Size(68, 20);
+            chkViewPaired.TabIndex = 46;
+            chkViewPaired.Text = "Paired";
+            chkViewPaired.UseVisualStyleBackColor = true;
+            // 
+            // radioViewDec
+            // 
+            radioViewDec.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
+            radioViewDec.AutoSize = true;
+            radioViewDec.Location = new Point(274, 256);
+            radioViewDec.Name = "radioViewDec";
+            radioViewDec.Size = new Size(46, 20);
+            radioViewDec.TabIndex = 45;
+            radioViewDec.TabStop = true;
+            radioViewDec.Text = "Dec";
+            radioViewDec.UseVisualStyleBackColor = true;
+            // 
+            // radioViewHex
+            // 
+            radioViewHex.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
+            radioViewHex.AutoSize = true;
+            radioViewHex.Location = new Point(198, 256);
+            radioViewHex.Name = "radioViewHex";
+            radioViewHex.Size = new Size(46, 20);
+            radioViewHex.TabIndex = 44;
+            radioViewHex.TabStop = true;
+            radioViewHex.Text = "Hex";
+            radioViewHex.UseVisualStyleBackColor = true;
             // 
             // txtCurrentLine
             // 
@@ -273,7 +352,7 @@
             txtCurrentLine.Font = new Font("JetBrains Mono", 8.999999F, FontStyle.Regular, GraphicsUnit.Point, 0);
             txtCurrentLine.Location = new Point(239, 282);
             txtCurrentLine.Name = "txtCurrentLine";
-            txtCurrentLine.Size = new Size(44, 23);
+            txtCurrentLine.Size = new Size(60, 23);
             txtCurrentLine.TabIndex = 43;
             txtCurrentLine.Text = "1";
             // 
@@ -342,9 +421,9 @@
             // 
             listBox1.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
             listBox1.FormattingEnabled = true;
-            listBox1.Location = new Point(195, 22);
+            listBox1.Location = new Point(198, 22);
             listBox1.Name = "listBox1";
-            listBox1.Size = new Size(865, 228);
+            listBox1.Size = new Size(862, 228);
             listBox1.TabIndex = 35;
             // 
             // GroupFlagsPrimary
@@ -442,7 +521,7 @@
             txtPG1.Location = new Point(136, 225);
             txtPG1.Name = "txtPG1";
             txtPG1.ReadOnly = true;
-            txtPG1.Size = new Size(44, 23);
+            txtPG1.Size = new Size(53, 23);
             txtPG1.TabIndex = 31;
             txtPG1.Text = "88888";
             // 
@@ -461,7 +540,7 @@
             txtWZ1.Location = new Point(136, 196);
             txtWZ1.Name = "txtWZ1";
             txtWZ1.ReadOnly = true;
-            txtWZ1.Size = new Size(44, 23);
+            txtWZ1.Size = new Size(53, 23);
             txtWZ1.TabIndex = 29;
             txtWZ1.Text = "88888";
             // 
@@ -480,7 +559,7 @@
             txtIY1.Location = new Point(136, 167);
             txtIY1.Name = "txtIY1";
             txtIY1.ReadOnly = true;
-            txtIY1.Size = new Size(44, 23);
+            txtIY1.Size = new Size(53, 23);
             txtIY1.TabIndex = 27;
             txtIY1.Text = "88888";
             // 
@@ -499,7 +578,7 @@
             txtHLPrime1.Location = new Point(136, 138);
             txtHLPrime1.Name = "txtHLPrime1";
             txtHLPrime1.ReadOnly = true;
-            txtHLPrime1.Size = new Size(44, 23);
+            txtHLPrime1.Size = new Size(53, 23);
             txtHLPrime1.TabIndex = 25;
             txtHLPrime1.Text = "88888";
             // 
@@ -518,7 +597,7 @@
             txtDEPrime1.Location = new Point(136, 109);
             txtDEPrime1.Name = "txtDEPrime1";
             txtDEPrime1.ReadOnly = true;
-            txtDEPrime1.Size = new Size(44, 23);
+            txtDEPrime1.Size = new Size(53, 23);
             txtDEPrime1.TabIndex = 23;
             txtDEPrime1.Text = "88888";
             // 
@@ -537,7 +616,7 @@
             txtBCPrime1.Location = new Point(136, 80);
             txtBCPrime1.Name = "txtBCPrime1";
             txtBCPrime1.ReadOnly = true;
-            txtBCPrime1.Size = new Size(44, 23);
+            txtBCPrime1.Size = new Size(53, 23);
             txtBCPrime1.TabIndex = 21;
             txtBCPrime1.Text = "88888";
             // 
@@ -556,7 +635,7 @@
             txtAFPrime1.Location = new Point(136, 51);
             txtAFPrime1.Name = "txtAFPrime1";
             txtAFPrime1.ReadOnly = true;
-            txtAFPrime1.Size = new Size(44, 23);
+            txtAFPrime1.Size = new Size(53, 23);
             txtAFPrime1.TabIndex = 19;
             txtAFPrime1.Text = "88888";
             // 
@@ -575,7 +654,7 @@
             txtSP1.Location = new Point(136, 22);
             txtSP1.Name = "txtSP1";
             txtSP1.ReadOnly = true;
-            txtSP1.Size = new Size(44, 23);
+            txtSP1.Size = new Size(53, 23);
             txtSP1.TabIndex = 17;
             txtSP1.Text = "88888";
             // 
@@ -594,7 +673,7 @@
             txtIM1.Location = new Point(39, 225);
             txtIM1.Name = "txtIM1";
             txtIM1.ReadOnly = true;
-            txtIM1.Size = new Size(44, 23);
+            txtIM1.Size = new Size(57, 23);
             txtIM1.TabIndex = 15;
             txtIM1.Text = "88888";
             // 
@@ -613,7 +692,7 @@
             txtIR1.Location = new Point(39, 196);
             txtIR1.Name = "txtIR1";
             txtIR1.ReadOnly = true;
-            txtIR1.Size = new Size(44, 23);
+            txtIR1.Size = new Size(57, 23);
             txtIR1.TabIndex = 13;
             txtIR1.Text = "88888";
             // 
@@ -632,7 +711,7 @@
             txtIX1.Location = new Point(39, 167);
             txtIX1.Name = "txtIX1";
             txtIX1.ReadOnly = true;
-            txtIX1.Size = new Size(44, 23);
+            txtIX1.Size = new Size(57, 23);
             txtIX1.TabIndex = 11;
             txtIX1.Text = "88888";
             // 
@@ -651,7 +730,7 @@
             txtHL1.Location = new Point(39, 138);
             txtHL1.Name = "txtHL1";
             txtHL1.ReadOnly = true;
-            txtHL1.Size = new Size(44, 23);
+            txtHL1.Size = new Size(57, 23);
             txtHL1.TabIndex = 9;
             txtHL1.Text = "88888";
             // 
@@ -670,7 +749,7 @@
             txtDE1.Location = new Point(39, 109);
             txtDE1.Name = "txtDE1";
             txtDE1.ReadOnly = true;
-            txtDE1.Size = new Size(44, 23);
+            txtDE1.Size = new Size(57, 23);
             txtDE1.TabIndex = 7;
             txtDE1.Text = "88888";
             // 
@@ -689,7 +768,7 @@
             txtBC1.Location = new Point(39, 80);
             txtBC1.Name = "txtBC1";
             txtBC1.ReadOnly = true;
-            txtBC1.Size = new Size(44, 23);
+            txtBC1.Size = new Size(57, 23);
             txtBC1.TabIndex = 5;
             txtBC1.Text = "88888";
             // 
@@ -708,7 +787,7 @@
             txtAF1.Location = new Point(39, 51);
             txtAF1.Name = "txtAF1";
             txtAF1.ReadOnly = true;
-            txtAF1.Size = new Size(44, 23);
+            txtAF1.Size = new Size(57, 23);
             txtAF1.TabIndex = 3;
             txtAF1.Text = "88888";
             // 
@@ -727,7 +806,7 @@
             txtPC1.Location = new Point(39, 22);
             txtPC1.Name = "txtPC1";
             txtPC1.ReadOnly = true;
-            txtPC1.Size = new Size(44, 23);
+            txtPC1.Size = new Size(57, 23);
             txtPC1.TabIndex = 1;
             txtPC1.Text = "88888";
             // 
@@ -753,7 +832,7 @@
             // 
             // menuStrip1
             // 
-            menuStrip1.Items.AddRange(new ToolStripItem[] { fileToolStripMenuItem, viewToolStripMenuItem, toolsToolStripMenuItem, helpToolStripMenuItem });
+            menuStrip1.Items.AddRange(new ToolStripItem[] { fileToolStripMenuItem, toolsToolStripMenuItem, helpToolStripMenuItem });
             menuStrip1.Location = new Point(0, 0);
             menuStrip1.Name = "menuStrip1";
             menuStrip1.Size = new Size(1294, 24);
@@ -802,19 +881,6 @@
             exitToolStripMenuItem.Text = "Exit";
             exitToolStripMenuItem.Click += exitToolStripMenuItem_Click;
             // 
-            // viewToolStripMenuItem
-            // 
-            viewToolStripMenuItem.DropDownItems.AddRange(new ToolStripItem[] { asHexToolStripMenuItem });
-            viewToolStripMenuItem.Name = "viewToolStripMenuItem";
-            viewToolStripMenuItem.Size = new Size(44, 20);
-            viewToolStripMenuItem.Text = "View";
-            // 
-            // asHexToolStripMenuItem
-            // 
-            asHexToolStripMenuItem.Name = "asHexToolStripMenuItem";
-            asHexToolStripMenuItem.Size = new Size(108, 22);
-            asHexToolStripMenuItem.Text = "as Hex";
-            // 
             // toolsToolStripMenuItem
             // 
             toolsToolStripMenuItem.DropDownItems.AddRange(new ToolStripItem[] { templateEditorToolStripMenuItem, compareLogsToolStripMenuItem, utilitiesToolStripMenuItem });
@@ -827,14 +893,14 @@
             templateEditorToolStripMenuItem.Checked = true;
             templateEditorToolStripMenuItem.CheckState = CheckState.Checked;
             templateEditorToolStripMenuItem.Name = "templateEditorToolStripMenuItem";
-            templateEditorToolStripMenuItem.Size = new Size(157, 22);
+            templateEditorToolStripMenuItem.Size = new Size(180, 22);
             templateEditorToolStripMenuItem.Text = "Template Editor";
             templateEditorToolStripMenuItem.Click += templateEditorToolStripMenuItem_Click;
             // 
             // compareLogsToolStripMenuItem
             // 
             compareLogsToolStripMenuItem.Name = "compareLogsToolStripMenuItem";
-            compareLogsToolStripMenuItem.Size = new Size(157, 22);
+            compareLogsToolStripMenuItem.Size = new Size(180, 22);
             compareLogsToolStripMenuItem.Text = "Compare Logs";
             compareLogsToolStripMenuItem.Click += compareLogsToolStripMenuItem_Click;
             // 
@@ -843,7 +909,7 @@
             utilitiesToolStripMenuItem.Checked = true;
             utilitiesToolStripMenuItem.CheckState = CheckState.Checked;
             utilitiesToolStripMenuItem.Name = "utilitiesToolStripMenuItem";
-            utilitiesToolStripMenuItem.Size = new Size(157, 22);
+            utilitiesToolStripMenuItem.Size = new Size(180, 22);
             utilitiesToolStripMenuItem.Text = "Utilities";
             utilitiesToolStripMenuItem.Click += utilitiesToolStripMenuItem_Click;
             // 
@@ -910,7 +976,7 @@
             groupBoxSecondary.Controls.Add(txtPC2);
             groupBoxSecondary.Controls.Add(lblPC2);
             groupBoxSecondary.Controls.Add(chkSecondaryHeader);
-            groupBoxSecondary.Location = new Point(12, 351);
+            groupBoxSecondary.Location = new Point(12, 363);
             groupBoxSecondary.Name = "groupBoxSecondary";
             groupBoxSecondary.Size = new Size(1069, 306);
             groupBoxSecondary.TabIndex = 2;
@@ -981,9 +1047,9 @@
             // 
             listBox2.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
             listBox2.FormattingEnabled = true;
-            listBox2.Location = new Point(195, 22);
+            listBox2.Location = new Point(198, 22);
             listBox2.Name = "listBox2";
-            listBox2.Size = new Size(865, 228);
+            listBox2.Size = new Size(862, 228);
             listBox2.TabIndex = 35;
             // 
             // GroupFlagsSecondary
@@ -1082,7 +1148,7 @@
             txtPG2.Location = new Point(136, 225);
             txtPG2.Name = "txtPG2";
             txtPG2.ReadOnly = true;
-            txtPG2.Size = new Size(44, 23);
+            txtPG2.Size = new Size(53, 23);
             txtPG2.TabIndex = 31;
             txtPG2.Text = "88888";
             // 
@@ -1101,7 +1167,7 @@
             txtWZ2.Location = new Point(136, 196);
             txtWZ2.Name = "txtWZ2";
             txtWZ2.ReadOnly = true;
-            txtWZ2.Size = new Size(44, 23);
+            txtWZ2.Size = new Size(53, 23);
             txtWZ2.TabIndex = 29;
             txtWZ2.Text = "88888";
             // 
@@ -1120,7 +1186,7 @@
             txtIY2.Location = new Point(136, 167);
             txtIY2.Name = "txtIY2";
             txtIY2.ReadOnly = true;
-            txtIY2.Size = new Size(44, 23);
+            txtIY2.Size = new Size(53, 23);
             txtIY2.TabIndex = 27;
             txtIY2.Text = "88888";
             // 
@@ -1139,7 +1205,7 @@
             txtHLPrime2.Location = new Point(136, 138);
             txtHLPrime2.Name = "txtHLPrime2";
             txtHLPrime2.ReadOnly = true;
-            txtHLPrime2.Size = new Size(44, 23);
+            txtHLPrime2.Size = new Size(53, 23);
             txtHLPrime2.TabIndex = 25;
             txtHLPrime2.Text = "88888";
             // 
@@ -1158,7 +1224,7 @@
             txtDEPrime2.Location = new Point(136, 109);
             txtDEPrime2.Name = "txtDEPrime2";
             txtDEPrime2.ReadOnly = true;
-            txtDEPrime2.Size = new Size(44, 23);
+            txtDEPrime2.Size = new Size(53, 23);
             txtDEPrime2.TabIndex = 23;
             txtDEPrime2.Text = "88888";
             // 
@@ -1177,7 +1243,7 @@
             txtBCPrime2.Location = new Point(136, 80);
             txtBCPrime2.Name = "txtBCPrime2";
             txtBCPrime2.ReadOnly = true;
-            txtBCPrime2.Size = new Size(44, 23);
+            txtBCPrime2.Size = new Size(53, 23);
             txtBCPrime2.TabIndex = 21;
             txtBCPrime2.Text = "88888";
             // 
@@ -1196,7 +1262,7 @@
             txtAFPrime2.Location = new Point(136, 51);
             txtAFPrime2.Name = "txtAFPrime2";
             txtAFPrime2.ReadOnly = true;
-            txtAFPrime2.Size = new Size(44, 23);
+            txtAFPrime2.Size = new Size(53, 23);
             txtAFPrime2.TabIndex = 19;
             txtAFPrime2.Text = "88888";
             // 
@@ -1215,7 +1281,7 @@
             txtSP2.Location = new Point(136, 22);
             txtSP2.Name = "txtSP2";
             txtSP2.ReadOnly = true;
-            txtSP2.Size = new Size(44, 23);
+            txtSP2.Size = new Size(53, 23);
             txtSP2.TabIndex = 17;
             txtSP2.Text = "88888";
             // 
@@ -1234,7 +1300,7 @@
             txtIM2.Location = new Point(39, 225);
             txtIM2.Name = "txtIM2";
             txtIM2.ReadOnly = true;
-            txtIM2.Size = new Size(44, 23);
+            txtIM2.Size = new Size(57, 23);
             txtIM2.TabIndex = 15;
             txtIM2.Text = "88888";
             // 
@@ -1253,7 +1319,7 @@
             txtIR2.Location = new Point(39, 196);
             txtIR2.Name = "txtIR2";
             txtIR2.ReadOnly = true;
-            txtIR2.Size = new Size(44, 23);
+            txtIR2.Size = new Size(57, 23);
             txtIR2.TabIndex = 13;
             txtIR2.Text = "88888";
             // 
@@ -1272,7 +1338,7 @@
             txtIX2.Location = new Point(39, 167);
             txtIX2.Name = "txtIX2";
             txtIX2.ReadOnly = true;
-            txtIX2.Size = new Size(44, 23);
+            txtIX2.Size = new Size(57, 23);
             txtIX2.TabIndex = 11;
             txtIX2.Text = "88888";
             // 
@@ -1291,7 +1357,7 @@
             txtHL2.Location = new Point(39, 138);
             txtHL2.Name = "txtHL2";
             txtHL2.ReadOnly = true;
-            txtHL2.Size = new Size(44, 23);
+            txtHL2.Size = new Size(57, 23);
             txtHL2.TabIndex = 9;
             txtHL2.Text = "88888";
             // 
@@ -1310,7 +1376,7 @@
             txtDE2.Location = new Point(39, 109);
             txtDE2.Name = "txtDE2";
             txtDE2.ReadOnly = true;
-            txtDE2.Size = new Size(44, 23);
+            txtDE2.Size = new Size(57, 23);
             txtDE2.TabIndex = 7;
             txtDE2.Text = "88888";
             // 
@@ -1329,7 +1395,7 @@
             txtBC2.Location = new Point(39, 80);
             txtBC2.Name = "txtBC2";
             txtBC2.ReadOnly = true;
-            txtBC2.Size = new Size(44, 23);
+            txtBC2.Size = new Size(57, 23);
             txtBC2.TabIndex = 5;
             txtBC2.Text = "88888";
             // 
@@ -1348,7 +1414,7 @@
             txtAF2.Location = new Point(39, 51);
             txtAF2.Name = "txtAF2";
             txtAF2.ReadOnly = true;
-            txtAF2.Size = new Size(44, 23);
+            txtAF2.Size = new Size(57, 23);
             txtAF2.TabIndex = 3;
             txtAF2.Text = "88888";
             // 
@@ -1367,7 +1433,7 @@
             txtPC2.Location = new Point(39, 22);
             txtPC2.Name = "txtPC2";
             txtPC2.ReadOnly = true;
-            txtPC2.Size = new Size(44, 23);
+            txtPC2.Size = new Size(57, 23);
             txtPC2.TabIndex = 1;
             txtPC2.Text = "88888";
             // 
@@ -1397,9 +1463,9 @@
             GroupUtilities.Controls.Add(label5);
             GroupUtilities.Controls.Add(chkVerboseDebug);
             GroupUtilities.Controls.Add(txtLog);
-            GroupUtilities.Location = new Point(1087, 30);
+            GroupUtilities.Location = new Point(1099, 27);
             GroupUtilities.Name = "GroupUtilities";
-            GroupUtilities.Size = new Size(195, 627);
+            GroupUtilities.Size = new Size(195, 642);
             GroupUtilities.TabIndex = 3;
             GroupUtilities.TabStop = false;
             GroupUtilities.Text = "Utilities";
@@ -1415,10 +1481,11 @@
             // 
             // chkVerboseDebug
             // 
+            chkVerboseDebug.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
             chkVerboseDebug.AutoSize = true;
             chkVerboseDebug.Checked = true;
             chkVerboseDebug.CheckState = CheckState.Checked;
-            chkVerboseDebug.Location = new Point(6, 381);
+            chkVerboseDebug.Location = new Point(6, 610);
             chkVerboseDebug.Name = "chkVerboseDebug";
             chkVerboseDebug.Size = new Size(75, 20);
             chkVerboseDebug.TabIndex = 1;
@@ -1431,7 +1498,7 @@
             txtLog.Location = new Point(6, 48);
             txtLog.Multiline = true;
             txtLog.Name = "txtLog";
-            txtLog.Size = new Size(183, 327);
+            txtLog.Size = new Size(183, 556);
             txtLog.TabIndex = 0;
             // 
             // groupTemplateEditor
@@ -1455,16 +1522,26 @@
             groupTemplateEditor.Controls.Add(listSingleRegs);
             groupTemplateEditor.Controls.Add(richTextBox1);
             groupTemplateEditor.Controls.Add(btnSaveTrace);
-            groupTemplateEditor.Location = new Point(12, 347);
+            groupTemplateEditor.Location = new Point(12, 371);
             groupTemplateEditor.Name = "groupTemplateEditor";
             groupTemplateEditor.Size = new Size(1069, 310);
             groupTemplateEditor.TabIndex = 46;
             groupTemplateEditor.TabStop = false;
             groupTemplateEditor.Text = "Trace Template Editor";
             // 
+            // btnFieldApply
+            // 
+            btnFieldApply.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
+            btnFieldApply.Location = new Point(349, 282);
+            btnFieldApply.Name = "btnFieldApply";
+            btnFieldApply.Size = new Size(159, 23);
+            btnFieldApply.TabIndex = 4;
+            btnFieldApply.Text = "Rebuild Template";
+            btnFieldApply.UseVisualStyleBackColor = true;
+            // 
             // tabOptions
             // 
-            tabOptions.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
+            tabOptions.Anchor = AnchorStyles.Top | AnchorStyles.Right;
             tabOptions.Controls.Add(tabPage1);
             tabOptions.Controls.Add(tabPage2);
             tabOptions.Controls.Add(tabPage3);
@@ -1679,21 +1756,12 @@
             tabPage3.Controls.Add(btnFieldDown);
             tabPage3.Controls.Add(btnFieldUp);
             tabPage3.Controls.Add(listAvailableFields);
-            tabPage3.Location = new Point(4, 25);
+            tabPage3.Location = new Point(4, 24);
             tabPage3.Name = "tabPage3";
-            tabPage3.Size = new Size(441, 133);
+            tabPage3.Size = new Size(441, 134);
             tabPage3.TabIndex = 2;
             tabPage3.Text = "Available Fields";
             tabPage3.UseVisualStyleBackColor = true;
-            // 
-            // btnFieldApply
-            // 
-            btnFieldApply.Location = new Point(349, 282);
-            btnFieldApply.Name = "btnFieldApply";
-            btnFieldApply.Size = new Size(159, 23);
-            btnFieldApply.TabIndex = 4;
-            btnFieldApply.Text = "Rebuild Template";
-            btnFieldApply.UseVisualStyleBackColor = true;
             // 
             // btnFieldRemove
             // 
@@ -1741,9 +1809,9 @@
             tabPage4.Controls.Add(txtFieldDefinition);
             tabPage4.Controls.Add(txtFieldModLen);
             tabPage4.Controls.Add(txtResultKeyword);
-            tabPage4.Location = new Point(4, 25);
+            tabPage4.Location = new Point(4, 24);
             tabPage4.Name = "tabPage4";
-            tabPage4.Size = new Size(441, 133);
+            tabPage4.Size = new Size(441, 134);
             tabPage4.TabIndex = 3;
             tabPage4.Text = "Modify Field";
             tabPage4.UseVisualStyleBackColor = true;
@@ -1855,7 +1923,7 @@
             // 
             // richTemplate
             // 
-            richTemplate.Anchor = AnchorStyles.Left | AnchorStyles.Right;
+            richTemplate.Anchor = AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
             richTemplate.BorderStyle = BorderStyle.FixedSingle;
             richTemplate.Location = new Point(12, 257);
             richTemplate.Multiline = false;
@@ -1867,7 +1935,7 @@
             // 
             // txtTracePreview
             // 
-            txtTracePreview.Anchor = AnchorStyles.Left | AnchorStyles.Right;
+            txtTracePreview.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
             txtTracePreview.BorderStyle = BorderStyle.FixedSingle;
             txtTracePreview.Location = new Point(12, 55);
             txtTracePreview.Name = "txtTracePreview";
@@ -1979,7 +2047,7 @@
             // 
             // richTextBox1
             // 
-            richTextBox1.Anchor = AnchorStyles.Left | AnchorStyles.Right;
+            richTextBox1.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
             richTextBox1.Location = new Point(12, 22);
             richTextBox1.Multiline = false;
             richTextBox1.Name = "richTextBox1";
@@ -1999,22 +2067,33 @@
             btnSaveTrace.Text = "Save Trace As...";
             btnSaveTrace.UseVisualStyleBackColor = true;
             // 
+            // chkGotoBoth
+            // 
+            chkGotoBoth.AutoSize = true;
+            chkGotoBoth.Location = new Point(383, 285);
+            chkGotoBoth.Name = "chkGotoBoth";
+            chkGotoBoth.Size = new Size(54, 20);
+            chkGotoBoth.TabIndex = 50;
+            chkGotoBoth.Text = "Both";
+            chkGotoBoth.UseVisualStyleBackColor = true;
+            // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(7F, 16F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(1294, 669);
-            Controls.Add(groupTemplateEditor);
+            ClientSize = new Size(1294, 693);
             Controls.Add(GroupUtilities);
-            Controls.Add(groupBoxSecondary);
             Controls.Add(groupBoxPrimary);
             Controls.Add(menuStrip1);
+            Controls.Add(groupTemplateEditor);
+            Controls.Add(groupBoxSecondary);
             Font = new Font("JetBrains Mono", 8.999999F, FontStyle.Regular, GraphicsUnit.Point, 0);
             MainMenuStrip = menuStrip1;
             MinimumSize = new Size(720, 708);
             Name = "Form1";
             Text = "ZX Trace Log Tool V0.3";
             Load += Form1_Load;
+            Resize += Form1_Resize;
             groupBoxPrimary.ResumeLayout(false);
             groupBoxPrimary.PerformLayout();
             GroupFlagsPrimary.ResumeLayout(false);
@@ -2095,8 +2174,6 @@
         private ToolStripMenuItem fileToolStripMenuItem;
         private ToolStripMenuItem openPrimaryLogToolStripMenuItem;
         private ToolStripMenuItem openSecondaryLogToolStripMenuItem;
-        private ToolStripMenuItem viewToolStripMenuItem;
-        private ToolStripMenuItem asHexToolStripMenuItem;
         private ToolStripMenuItem helpToolStripMenuItem;
         private ToolStripMenuItem zXTLWebsiteToolStripMenuItem;
         private ToolStripMenuItem zXDiscordServerToolStripMenuItem;
@@ -2216,6 +2293,13 @@
         private TextBox txtFieldDefinition;
         private Button btnApplyMod;
         private CheckBox chkFieldUseLength;
+        private RadioButton radioViewDec;
+        private RadioButton radioViewHex;
+        private CheckBox chkViewPaired;
+        private Button btnPrevPage;
+        private Button btnNextPage;
+        private Button btnGotoLine;
+        private CheckBox chkGotoBoth;
     }
 }
 
